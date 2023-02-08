@@ -1,0 +1,31 @@
+********************************************************************************
+Multicast Example
+********************************************************************************
+This runs on 3 NSP which collaborate to do the processing.
+
+NSP 0:
+- thread 0: receives two input buffers from the host, and copies one each into
+            internal buffers on NSP 1 and NSP 2
+- thread 1: waits for results to come back, and sends the output back to the host
+- other threads: print a message and exit
+NSP 1 & 2:
+- thread 0: receives an input from NSP 0 via an internal buffer, processes it,
+            and sends the result to an internal buffer on NSP 0.
+- other threads: print a message and exit
+
+
+Compile:
+export QAIC_COMPUTE_INSTALL_DIR=<path_to_qaic_source>/install/<build_type>
+export PATH=${QAIC_COMPUTE_INSTALL_DIR}/exec:$PATH
+export HEXAGON_TOOLS_DIR=<path to hexagon tools>
+mkdir build
+cd build
+cmake  -DCMAKE_TOOLCHAIN_FILE=${QAIC_COMPUTE_INSTALL_DIR}/dev/cmake/qaic.cmake ..
+make
+
+Run (creating the symbolic link because qaic-runner expects the QPC to be named programqpc.bin):
+ln -s Multicast.qpc programqpc.bin
+<path to qaic-runner>/qaic-runner -t . -i ../input1.txt -i ../input2.txt --write-output-dir output --write-output-num-samples 1 --write-output-start-iter 0 --num-iter 1
+
+See the output:
+cat output/outputBuff_0-activation-0-inf-0.bin

@@ -1,0 +1,41 @@
+// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+
+syntax = "proto3";
+package aicnwdesc;
+import "AICNetworkDesc.proto";
+
+enum destination {
+  L2TCM = 0;
+  VTCM = 1;
+  DDR = 2;
+}
+
+message IODescription {
+  dataType type = 1;
+  repeated int32 dims = 2;
+  uint32 hostOffset = 3;
+  uint32 devOffset = 4;
+  uint32 baseAddrOffset = 5;
+  destination dest = 6;
+  int32 inSyncFence = 7;
+  int32 outSyncFence = 8;
+  repeated int32 nsps = 9;
+  bool noDoorbell = 10;
+  bool allowPartial = 11;
+}
+
+message ProgramConfig {
+  string name = 1;
+  uint32 hwVersionMajor = 2;
+  uint32 hwVersionMinor = 3;
+  uint32 numNSPs = 4;
+  repeated IODescription inputs = 5;
+  repeated IODescription outputs = 6;
+  repeated IODescription internalBuffers = 7;
+  uint32 numThreads = 11;
+  uint32 numHMXThreads = 12;
+  uint64 heapSize = 13;
+  bool singleVTCMPage = 14;
+}
+

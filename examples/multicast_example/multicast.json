@@ -1,0 +1,33 @@
+{
+    "name": "multicast",
+    "hwVersionMajor":2,
+    "hwVersionMinor":0,
+    "numNSPs":3,
+    "inputs":[
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":0,"baseAddrOffset":0,"dest":"VTCM","nsps":[0], "allowPartial":false
+        },
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":64,"baseAddrOffset":0,"dest":"VTCM","inSyncFence":1,"nsps":[0], "allowPartial":false
+        },
+    ],
+    "outputs":[
+        {
+            "type":"Int8Ty","dims":128,"hostOffset":0,"devOffset":128,"baseAddrOffset":0,"dest":"VTCM","outSyncFence":1,"nsps":[0]
+        }
+    ],
+    "internalBuffers":[
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":128,"baseAddrOffset":0,"dest":"VTCM","nsps":[0]
+        },
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":0,"baseAddrOffset":0,"dest":"VTCM","nsps":[1]
+        },
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":0,"baseAddrOffset":0,"dest":"VTCM","nsps":[2]
+        },
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":192,"baseAddrOffset":0,"dest":"VTCM","nsps":[0]
+        }
+    ]
+}

@@ -1,0 +1,31 @@
+********************************************************************************
+Simple IO Example
+********************************************************************************
+This runs on 1 NSP, and only the first thread does any work. The rest print a
+message and exit. Inputs are located in L2TCM and VTCM, and output in DDR for
+this example.
+
+Thread 0 does the following:
+- indicates that it can receive inputs
+- waits for the first input, and prints it
+- waits for the second input, and prints it
+- merges the inputs into the output buffer
+- sends that output back to the host
+- waits for the host to acknowledge receipt of the output
+- prints a message indicating output acknowlegement has been received
+
+Compile:
+export QAIC_COMPUTE_INSTALL_DIR=<path_to_qaic_source>/install/<build_type>
+export PATH=${QAIC_COMPUTE_INSTALL_DIR}/exec:$PATH
+export HEXAGON_TOOLS_DIR=<path to hexagon tools>
+mkdir build
+cd build
+cmake  -DCMAKE_TOOLCHAIN_FILE=${QAIC_COMPUTE_INSTALL_DIR}/dev/cmake/qaic.cmake ..
+make
+
+Run (creating the symbolic link because qaic-runner expects the QPC to be named programqpc.bin):
+ln -s SimpleIO.qpc programqpc.bin
+<path to qaic-runner>/qaic-runner -t . -i ../buffer1.txt -i ../buffer2.txt --write-output-dir output --write-output-num-samples 1 --write-output-start-iter 0 --num-iter 1
+
+See the output:
+cat output/outputBuff_0-activation-0-inf-0.bin

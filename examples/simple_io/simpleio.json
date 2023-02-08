@@ -1,0 +1,19 @@
+{
+    "name": "simpleio",
+    "hwVersionMajor":2,
+    "hwVersionMinor":0,
+    "numNSPs":1,
+    "inputs":[
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":3072,"baseAddrOffset":0,"dest":"L2TCM","inSyncFence":0,"outSyncFence":0
+        },
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":0,"baseAddrOffset":4096,"dest":"VTCM","inSyncFence":1,"outSyncFence":0
+        }
+    ],
+    "outputs":[
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":64,"baseAddrOffset":0,"dest":"DDR","inSyncFence":0,"outSyncFence":0
+        }
+    ]
+}

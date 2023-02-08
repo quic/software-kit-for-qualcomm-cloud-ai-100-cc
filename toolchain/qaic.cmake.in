@@ -1,0 +1,91 @@
+set(_toolchain_path ${CMAKE_CURRENT_LIST_DIR})
+
+cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
+
+set(CMAKE_CROSSCOMPILING TRUE)
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR qaic)
+
+# Set the tool prefix for finding various bin utils
+set(TOOLCHAIN_PREFIX qaic-)
+
+set(CMAKE_C_COMPILER qaic-cc)
+set(CMAKE_CXX_COMPILER qaic-cc)
+set(CMAKE_ASM_COMPILER qaic-cc)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+# Cmake will try to compile an executable by default which will not succeed
+# because the qaic toolchain has a different flow
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+
+# QAIC Compute Linker
+set(CMAKE_C_LINK_EXECUTABLE "<CMAKE_C_COMPILER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+set(CMAKE_CXX_LINK_EXECUTABLE "<CMAKE_CXX_COMPILER> <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+
+# Avoid incorrect Linux rpath link flag when this file isn't properly used as the CMAKE_TOOLCHAIN_FILE
+if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_SKIP_RPATH TRUE)
+endif()
+
+#
+# Adds QAIC headers and libraries for target
+#
+function(add_qaic_dependencies target)
+   # Specify the library path
+   if(DEFINED COMPUTE_LIBRARY_PATH)
+     target_link_directories(${target} PUBLIC ${COMPUTE_LIBRARY_PATH})
+   elseif(DEFINED ENV{QAIC_COMPUTE_INSTALL_DIR})
+     target_link_directories(${target} PUBLIC $ENV{QAIC_COMPUTE_INSTALL_DIR}/dev/lib/x86_64/compute)
+   else()
+     target_link_directories(${target} PUBLIC /opt/qti-aic/dev/lib/x86_64/compute)
+   endif()
+
+   # Specify the include path
+   if(DEFINED COMPUTE_INCLUDE_PATH)
+     target_include_directories(${target} PUBLIC ${COMPUTE_INCLUDE_PATH})
+   elseif(DEFINED ENV{QAIC_COMPUTE_INSTALL_DIR})
+     target_include_directories(${target} PUBLIC $ENV{QAIC_COMPUTE_INSTALL_DIR}/dev/inc/compute)
+   else()
+     target_include_directories(${target} PUBLIC /opt/qti-aic/dev/inc/compute)
+   endif()
+endfunction(add_qaic_dependencies)
+
+#
+# Defines a new library for qaic
+#
+function(add_qaic_library target)
+   add_library(${target} STATIC ${ARGN})
+   add_qaic_dependencies(${target})
+endfunction(add_qaic_library)
+
+#
+# Defines a new exeuctable taget for qaic
+#
+function(add_qaic_executable target config)
+   # Name the final output .qpc if the target does not do so
+   if (NOT ${target} MATCHES ".qpc$")
+      set(_output_name "${target}.qpc")
+   else()
+      set(_output_name ${target})
+   endif()
+
+   # Create the executable target
+   add_executable(${target} ${ARGN})
+   set_target_properties(${target} PROPERTIES OUTPUT_NAME ${_output_name})
+   add_qaic_dependencies(${target})
+
+   # Get an absolute path to config file so the linker can find it
+   if(IS_ABSOLUTE "${config}")
+      set(_config_path ${config})
+   else()
+      set(_config_path "${CMAKE_CURRENT_SOURCE_DIR}/${config}")
+   endif()
+
+   # Add additional options to the linker to pass configs
+   set_target_properties(${target} PROPERTIES LINK_FLAGS "-qaic-program-config ${_config_path}")
+   set_target_properties(${target} PROPERTIES LINK_DEPENDS ${_config_path})
+endfunction(add_qaic_executable)

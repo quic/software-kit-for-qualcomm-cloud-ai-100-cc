@@ -1,0 +1,34 @@
+{
+    "name": "example_config",
+    "hwVersionMajor":2,
+    "hwVersionMinor":0,
+    "numNSPs":14,
+    "inputs":[
+        {
+            "type":"Int8Ty","dims":64,"hostOffset":0,"devOffset":0,"baseAddrOffset":4096,"dest":"L2TCM","inSyncFence":0
+        },
+        {
+            "type":"Int8Ty","dims":436080,"hostOffset":0,"devOffset":0,"baseAddrOffset":0,"dest":"VTCM","inSyncFence":1
+        }
+    ],
+    "outputs":[
+        {
+            "type":"Int8Ty","dims":836480,"hostOffset":0,"devOffset":436080,"baseAddrOffset":0,"dest":"DDR","outSyncFence":0
+        },
+        {
+            "type":"Int8Ty","dims":4,"hostOffset":0,"devOffset":436080,"baseAddrOffset":0,"dest":"DDR","outSyncFence":0
+        }
+    ],
+    "internalBuffers":[
+        {
+            "type":"Int8Ty","dims":[512,1024,1024],"devOffset":0,"dest":"DDR","noDoorbell":true
+        },
+        {
+            "type":"Int8Ty","dims":[1021,1024],"devOffset":3072,"dest":"L2TCM","noDoorbell":true
+        },
+        {
+            "type":"Int8Ty","dims":[8,1024,1024],"devOffset":0,"dest":"VTCM","noDoorbell":true
+        }
+    ],
+    "numHMXThreads":1
+}

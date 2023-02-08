@@ -1,0 +1,88 @@
+Compiling code with qaic-cc into a QPC requires passing in a configuration file.
+This documents the format of that configuration file.
+
+The file must be valid JSON. It must start with an opening brace { and end with
+a closing brace }. It supports the following options:
+
+[Optional] "name":            The name used to identify your executable.
+                              This name can be any text string.
+[Required] "hwVersionMajor":  The major hardware version number for the device
+                              you will run on. Currently must be 2.
+[Required] "hwVersionMinor":  This is the minor hardware version number for the
+                              device you will run on. Currently must be 0.
+[Required] "numNSPs":         The number of NSPs needed to run this QPC. The
+                              activate function will be called on each NSP, with
+                              the logical NSP number [0-numNSPs-1] passed in.
+[Optional] "inputs":          An array of input buffer descriptors (see below).
+[Required] "outputs":         An array of output buffer descriptors (see below).
+[Optional] "internalBuffers": An array of internal buffer descriptors
+                              (see below).
+[Optional] "numThreads":      The number of threads to start on each NSP. The
+                              activate function will be called on each thread on
+                              each NSP, with the virtualThreadID passed in.
+                              Default is 4. Maximum is 6.
+
+Buffers specified in the config will reserve space in the appropriate memory
+type. Input and Output buffers have one copy on the host and one or more copies
+on the device, and data will be transferred between the host copy and device
+when the buffers are marked as ready. DDR buffers on the device reside in the
+non-coherent DDR shared by the NSPs. L2TCM and VTCM buffers on the device have
+non-coherent copies in the L2TCM/VTCM space of the relevant NSPs. Host writes to
+input buffers and NSP broadcasts to buffers will affect all device copies.
+Overlapping of buffers with other buffers is allowed, and is not protected
+against. The multicast example makes use of this. By default every buffer will
+have a doorbell, which will be written to indicate that a transfer into the
+buffer has been completed.
+
+Each buffer descriptor starts with an opening brace { and end with a closing
+brace }, and has the following format:
+
+[Optional] "type":           The type of data in the buffer. Default is FloatTy
+  Valid values:
+  "FloatTy"    // 32-bit float type (float)
+  "Float16Ty"  // 16-bit float type (half, fp16)
+  "Int8QTy"    // 8-bit quantized type (int8_t)
+  "UInt8QTy"   // unsigned 8-bit quantized type (uint8_t)
+  "Int16QTy"   // 16-bit quantized type (int16_t)
+  "Int32QTy"   // 32-bit quantized type (int32_t)
+  "Int32ITy"   // 32-bit index type (int32_t)
+  "Int64ITy"   // 64-bit index type (int64_t)
+  "Int8Ty"     // 8-bit type (int8_t)
+[Required] "dims":           An array of the number of elements for each
+                             dimension of the data buffer. Must be non-zero
+[Optional] "hostOffset":     Input/Output buffers only. The byte offset into the
+                             host memory that this buffer starts at. Default is
+                             0.
+[Optional] "devOffset":      The byte offset into the device memory type that
+                             this buffer starts at. Default is 0.
+[Optional] "baseAddrOffset": L2TCM/VTCM memory types only. An additional byte
+                             offset to add to the devOffset. Must be a multiple
+                             of 4096.
+[Optional] "dest":           The memory type of the buffer. Default is "L2TCM".
+    Valid values:
+    "L2TCM" //A portion of the L2 cache for the NSP.
+            Note: (devOffset + baseAddrOffset) must be higher than the L2TCM
+            portion reserved by the compiler.
+    "VTCM"  //A portion of the Vector memory for the NSP.
+    "DDR"   //A portion of the device DDR shared by the NSPs.
+[Optional] "inSyncFence":    Input/Output buffers only. Default 0. Set to 1 to
+                             indicate that all previous input transfers must be
+                             complete before this transfer starts
+[Optional] "outSyncFence":   Input/Output buffers only. Default 0. Set to 1 to
+                             indicate that all previous output transfers must be
+                             complete before this transfer starts
+[Optional] "nsps":           Array of virtual NSP numbers that have this buffer.
+                             Default is all NSPs. Note: Output buffers in
+                             VTCM/L2TCM must be limited to exactly one NSP.
+[Optional] "noDoorbell":     Default false. Set to true to prevent allocating a
+                             doorbell for the buffer.
+[Optional] "allowPartial":   Allow partial input. Defaults to false. If true,
+                             allow the input buffer to be smaller than the
+                             listed size. The input buffer will be written
+                             with an 8 byte header listing the offset within
+                             the buffer to the start of the input data, and
+                             the size of the actual input data. Due to this
+                             header, the actual input must be at least 8
+                             bytes smaller than the specified input size.
+
+See the examples provided with this SDK for some example config json files.

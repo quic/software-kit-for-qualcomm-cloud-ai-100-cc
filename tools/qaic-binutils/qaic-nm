@@ -1,0 +1,8 @@
+#! /bin/bash
+
+if [ "${HEXAGON_TOOLS_DIR}x" == "x" ]; then
+   echo "ERROR: HEXAGON_TOOLS_DIR is not set."
+   exit 1
+fi
+
+${HEXAGON_TOOLS_DIR}/bin/llvm-nm $@
