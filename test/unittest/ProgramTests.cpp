@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "AICMetadataReader.h"
@@ -7,6 +7,8 @@
 
 #include "program/Program.h"
 #include "program/ProgramConfig.h"
+
+#include "llvm/Support/Debug.h"
 
 using namespace qaic;
 

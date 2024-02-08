@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_APPCONFIG_H_
@@ -9,6 +9,7 @@
 #include "ProgramConfig.pb.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/raw_ostream.h"
 
 namespace qaic {
 

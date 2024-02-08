@@ -7,6 +7,7 @@
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/ObjectFile.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
 
 #include "Driver.h"

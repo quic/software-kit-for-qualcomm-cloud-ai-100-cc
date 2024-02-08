@@ -1,9 +1,11 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "DriverContext.h"
 #include "Driver.h"
 #include "program/ProgramConfig.h"
+
+#include "llvm/Support/FileSystem.h"
 
 using namespace llvm;
 using namespace qaic;
