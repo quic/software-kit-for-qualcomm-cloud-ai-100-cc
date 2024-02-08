@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "Path.h"
@@ -22,5 +22,5 @@ std::string qaic::joinPath(StringRef path, StringRef a, StringRef b,
                            StringRef c, StringRef d) {
   SmallString<256> pathVec{path};
   sys::path::append(pathVec, a, b, c, d);
-  return pathVec.str();
+  return pathVec.str().str();
 }

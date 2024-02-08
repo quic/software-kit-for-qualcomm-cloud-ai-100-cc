@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_TOOLCHAIN_LINKER_H_
@@ -31,7 +31,7 @@ public:
    * @brief
    *
    */
-  void addInput(llvm::StringRef file) { linkerLibs_.push_back(file); }
+  void addInput(llvm::StringRef file) { linkerLibs_.push_back(file.str()); }
 
   /**
    * @brief
@@ -140,10 +140,10 @@ public:
   bool getVerbose() const { return verbose_; }
 
   void addPretendUndef(llvm::StringRef sym) {
-    pretendUndefSyms_.push_back(sym);
+    pretendUndefSyms_.push_back(sym.str());
   }
 
-  void wrapSym(llvm::StringRef sym) { wrapSyms_.push_back(sym); }
+  void wrapSym(llvm::StringRef sym) { wrapSyms_.push_back(sym.str()); }
 
   /**
    * @brief Executes the tool and returns a process exit code.

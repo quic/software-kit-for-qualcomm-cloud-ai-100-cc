@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_TOOLCHAIN_AR_H_
@@ -46,7 +46,7 @@ public:
   /**
    * @brief Adds an input file to the command.
    */
-  void addInputFile(llvm::StringRef file) { inputFiles_.push_back(file); }
+  void addInputFile(llvm::StringRef file) { inputFiles_.push_back(file.str()); }
 
   /**
    * @brief Clears input file list for the command.

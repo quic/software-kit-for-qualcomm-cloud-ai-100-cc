@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_SUPPORT_STRINGLIST_H_
@@ -22,7 +22,7 @@ public:
 
   std::vector<llvm::StringRef> getRefList() const;
 
-  void push_back(llvm::StringRef val) { strings_.push_back(val); }
+  void push_back(llvm::StringRef val) { strings_.push_back(val.str()); }
 
   iterator begin() { return strings_.begin(); }
   iterator end() { return strings_.end(); }

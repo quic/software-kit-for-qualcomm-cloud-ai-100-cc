@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "Compiler.h"
@@ -78,7 +78,7 @@ void qaic::Compiler::addSystemIncludePath(llvm::StringRef path) {
 
 void qaic::Compiler::addWarningFlag(llvm::StringRef flag) {
   if (flag.startswith("-W")) {
-    warningFlags_.push_back(flag);
+    warningFlags_.push_back(flag.str());
   } else {
     std::string arg = "-W";
     arg += flag;

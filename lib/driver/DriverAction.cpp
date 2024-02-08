@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include <fstream>
@@ -460,7 +460,7 @@ bool BuildQPCAction::runImpl(DriverContext &context) {
 
   auto serializedQPC = builder.finalizeToByteArray();
   {
-    std::ofstream file(outputName, std::ios::binary);
+    std::ofstream file(outputName.str(), std::ios::binary);
     file.write((const char *)serializedQPC.data(), serializedQPC.size());
   }
 

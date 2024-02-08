@@ -1,4 +1,4 @@
-// Copyright (c) 2021 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_TOOLS_DRIVER_CONTEXT_H_
@@ -30,7 +30,7 @@ public:
    * completion of the driver actions.
    */
   void registerIntermediateFileForCleanup(llvm::StringRef file) {
-    intermediateFiles_.insert(file);
+    intermediateFiles_.insert(file.str());
   }
 
   /**

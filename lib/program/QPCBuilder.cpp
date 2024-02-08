@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "support/Debug.h"
@@ -33,48 +33,48 @@ bool QPCBuilder::addSegmentFromFile(llvm::StringRef name,
   std::ifstream::pos_type fileSize = ifs.tellg();
   ifs.seekg(0, std::ios::beg);
 
-  segmentBufferMap_[name].resize(fileSize);
-  ifs.read((char *)&segmentBufferMap_[name][0], fileSize);
+  segmentBufferMap_[name.str()].resize(fileSize);
+  ifs.read((char *)&segmentBufferMap_[name.str()][0], fileSize);
 
   // if we fail to read all bytes then error out and don't add the segment
   if (ifs.gcount() != fileSize) {
-    segmentBufferMap_.erase(name);
+    segmentBufferMap_.erase(name.str());
     return false;
   }
 
   QAIC_DEBUG_STREAM("adding section \""
-                    << name << "\" (size = " << segmentBufferMap_[name].size()
-                    << ") to QPC.\n");
+                    << name << "\" (size = "
+		    << segmentBufferMap_[name.str()].size() << ") to QPC.\n");
   size_t offset;
   if (name.equals("constants.bin")) {
     offset = fileSize;
   } else {
     offset = 0;
   }
-  segmentOffsets_.emplace(name, offset);
+  segmentOffsets_.emplace(name.str(), offset);
   return true;
 }
 
 void QPCBuilder::removeSegment(llvm::StringRef name) {
-  segmentBufferMap_.erase(name);
-  segmentOffsets_.erase(name);
+  segmentBufferMap_.erase(name.str());
+  segmentOffsets_.erase(name.str());
 }
 
 bool QPCBuilder::hasSegment(llvm::StringRef name) const {
-  bool has = (segmentBufferMap_.count(name) == 1);
-  assert(has == (segmentOffsets_.count(name) == 1));
+  bool has = (segmentBufferMap_.count(name.str()) == 1);
+  assert(has == (segmentOffsets_.count(name.str()) == 1));
   return has;
 }
 
 size_t QPCBuilder::getSegmentOffset(llvm::StringRef name) const {
-  auto itr = segmentOffsets_.find(name);
+  auto itr = segmentOffsets_.find(name.str());
   if (itr == segmentOffsets_.end())
     return 0;
   return itr->second;
 }
 
 llvm::ArrayRef<uint8_t> QPCBuilder::getSegmentData(llvm::StringRef name) const {
-  auto itr = segmentBufferMap_.find(name);
+  auto itr = segmentBufferMap_.find(name.str());
   if (itr == segmentBufferMap_.end())
     return {};
   return {itr->second.data(), itr->second.size()};

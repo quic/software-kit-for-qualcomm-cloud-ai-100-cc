@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "support/Debug.h"
@@ -45,7 +45,7 @@ void qaic::Tools::setHexagonToolsPath(llvm::StringRef path) {
 
 void qaic::Tools::addSearchPath(llvm::StringRef path) {
   QAIC_DEBUG_STREAM("Adding tool search path " << path << "\n");
-  searchPaths_.push_back(path);
+  searchPaths_.push_back(path.str());
 }
 
 std::vector<StringRef> qaic::Tools::getSearchPaths() const {

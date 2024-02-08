@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_TOOLCHAIN_OBJCOPY_H_
@@ -43,10 +43,10 @@ public:
   void setOutputFile(llvm::StringRef file) { outputFile_ = file; }
   void setStripSymbolsMode(StripSymbolMode mode) { stripMode_ = mode; }
   void setSectionFlag(llvm::StringRef sectionName, SectionFlag flag) {
-    sectionFlagsToSet_[sectionName].insert(flag);
+    sectionFlagsToSet_[sectionName.str()].insert(flag);
   }
   void addSection(llvm::StringRef sectionName, llvm::StringRef path) {
-    sectionsToAdd_[sectionName] = path;
+    sectionsToAdd_[sectionName.str()] = path;
   }
 
   int execute() override;

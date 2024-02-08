@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include <sstream>
@@ -79,8 +79,8 @@ void qaic::Linker::addLib(llvm::StringRef lib) {
 }
 
 uintptr_t qaic::Linker::getSectionAddr(llvm::StringRef sectionName) const {
-  if (sectionAddrs_.count(sectionName)) {
-    return sectionAddrs_.at(sectionName);
+  if (sectionAddrs_.count(sectionName.str())) {
+    return sectionAddrs_.at(sectionName.str());
   } else {
     return 0;
   }
