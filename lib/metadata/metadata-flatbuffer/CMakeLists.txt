@@ -18,8 +18,8 @@ project(flatbuff_writer)
 add_library(metadataFlatbufferWriter ${CMAKE_CURRENT_SOURCE_DIR}/src/metadataFlatbufferWriter.cpp)
 target_include_directories(metadataFlatbufferWriter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_options(metadataFlatbufferWriter PRIVATE -fPIC )
-target_link_libraries(metadataFlatbufferWriter PRIVATE AICMetadata module-flatbuffers)
+target_link_libraries(metadataFlatbufferWriter PRIVATE AICMetadata module-flatbuffers ExecContext_writer)
 
-target_include_directories(metadataFlatbufferWriter PRIVATE
+target_include_directories(metadataFlatbufferWriter PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/deps
 )

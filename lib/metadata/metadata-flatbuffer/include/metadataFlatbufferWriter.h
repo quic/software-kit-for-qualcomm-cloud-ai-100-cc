@@ -1,20 +1,18 @@
-// Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef METADATAFLATBUFFERWRITER
 #define METADATAFLATBUFFERWRITER
 
+#include "AICMetadata.h"
 #include "AicMetadataFlat_generated.h"
-#include <cstdio>
+#include "execContextWriter.hpp"
 #include <array>
 #include <cassert>
+#include <cstdio>
+#include <iostream>
 #include <string>
 #include <vector>
-#include <iostream>
-
-// TEMPORARY DECLARATIONS: to be deleted once AICMetadata.h is removed
-// BEGIN TEMPORARY DECLARATIONS.
-#include "AICMetadata.h"
 
 typedef void (*nnc_activate_fp)(void *ctx, uint8_t virtualThreadId,
                                 uint32_t stid);
@@ -22,6 +20,7 @@ typedef AICMDSemaphoreOp SemaphoreOp;
 typedef std::vector<SemaphoreOp> SemaphoreOps;
 typedef AICMDDoorbellOp DoorbellOp;
 typedef std::vector<DoorbellOp> DoorbellOps;
+
 // END TEMPORARY DECLARATIONS.
 
 using SemaphoreOpF = AicMetadataFlat::AICMDSemaphoreOpT;
@@ -30,17 +29,26 @@ using DoorbellOpF = AicMetadataFlat::AICMDDoorbellOpT;
 using DoorbellOpsF = std::vector<DoorbellOpF>;
 
 class MetadataFlatbufferWriter {
+public:
+  enum class DynamicSharedDDRStatus { Disabled = 0, Enabled = 1 };
+
 private:
   AicMetadataFlat::MetadataT metadata_;
   std::vector<uint8_t> metadataBuffer;
+  DynamicSharedDDRStatus dynamicDDRStatus_{DynamicSharedDDRStatus::Disabled};
   // Constant mappings.
   uint32_t constMappingCores{0};
+  static bool searchKnownFields(const std::string &requiredField);
+  void addIntrospectionString(const std::string &element);
+  void serialize();
 
 public:
-  MetadataFlatbufferWriter(uint16_t hwVersionMajor, uint16_t hwVersionMinor,
-                           uint16_t versionMajor, uint16_t versionMinor,
-                           uint16_t execContextMajorVersion,
-                           uint64_t exitDoorbellOffset = ~(uint64_t)0);
+  MetadataFlatbufferWriter(
+      uint16_t hwVersionMajor, uint16_t hwVersionMinor,
+      uint16_t versionMajor = AIC_METADATA_MAJOR_VERSION,
+      uint16_t versionMinor = AIC_METADATA_MINOR_VERSION,
+      uint16_t execContextMajorVersion = AIC_METADATA_EXEC_CTX_MAJOR_VERSION,
+      uint64_t exitDoorbellOffset = ~(uint64_t)0);
   void finalize();
   bool isFinal() const { return (metadataBuffer.size() > 0); }
   int getSize() const {
@@ -176,7 +184,7 @@ public:
   void addDMARequest(uint16_t num, uint64_t hostOffset, uint8_t devAddrSpace,
                      uint64_t devOffset, uint32_t size, uint8_t inOut,
                      uint16_t portID, uint16_t mcId, SemaphoreOps &semaphoreOps,
-                     DoorbellOps &doorbellOps);
+                     DoorbellOps &doorbellOps, uint32_t transactionId = 0);
   // END TEMPORARY LEGACY SUPPORT
   // Host<->NSP DMA requests.
   void addSemaphoreOp(SemaphoreOpsF &semaphoreOps, uint8_t semOp,
@@ -187,7 +195,8 @@ public:
   void addDMARequest(uint16_t num, uint64_t hostOffset, uint8_t devAddrSpace,
                      uint64_t devOffset, uint32_t size, uint8_t inOut,
                      uint16_t portID, uint16_t mcId,
-                     SemaphoreOpsF &semaphoreOps, DoorbellOpsF &doorbellOps);
+                     SemaphoreOpsF &semaphoreOps, DoorbellOpsF &doorbellOps,
+                     uint32_t transactionId);
   // Add NSP/host multicast entries.
   void addNSPMulticastEntry(int core, uint8_t dynamic, uint32_t mask,
                             uint32_t size, uint8_t addrSpace,
@@ -205,6 +214,8 @@ public:
     metadata_.exitDoorbellOffset = offset;
   }
 
+  void addPort(uint16_t portId, AicMetadataFlat::AICMDPortType type);
+
   // Network heap
   uint64_t getNetworkHeapSize() const { return metadata_.networkHeapSize; }
   void setNetworkHeapSize(uint64_t size) { metadata_.networkHeapSize = size; }
@@ -218,10 +229,46 @@ public:
     metadata_.requiredFields.push_back(field);
   }
 
+  void
+  setCacheableConstants(const AicMetadataFlat::cacheableConstants setting) {
+    metadata_.QNNConfig->Constants = setting;
+    if (setting !=
+        AicMetadataFlat::cacheableConstants_CACHE_DISABLED) { // DISABLED is
+                                                              // default behavior
+      this->addIntrospectionString(
+          "AicMetadataFlat_Metadata->QNNConfig->Constants");
+    }
+  }
+
+  void enableDynamicSharedDDR() {
+    if (dynamicDDRStatus_ == DynamicSharedDDRStatus::Disabled) {
+      dynamicDDRStatus_ = DynamicSharedDDRStatus::Enabled;
+      this->addIntrospectionString(
+          "AicMetadataFlat_Metadata->dynamicSharedDDRSupported");
+    }
+  }
+  void setNetworkHeapBehavior(
+      const AicMetadataFlat::networkDeactivateAction setting) {
+    metadata_.networkHeapBehavior->onNetworkDeactivate = setting;
+    if (setting !=
+        AicMetadataFlat::networkDeactivateAction_freeNetworkHeap) { // free is
+                                                                    // default
+                                                                    // behavior
+      this->addIntrospectionString(
+          "AicMetadataFlat_Metadata->networkHeapBehavior");
+    }
+  }
+
   // record the raw bytes taken up by struct version for firmware's use
   void set_raw_struct_version_length(const uint64_t length) {
     metadata_.raw_struct_version_length = length;
   }
+  // input of a vector, set execContext to that vector
+  void setExecContext(const std::vector<uint8_t> &execContext) {
+    metadata_.execContext = execContext;
+    this->addIntrospectionString("AicMetadataFlat_Metadata->execContext");
+  }
+  void PopulateL2TCMInitStateNonZeroRegions();
 };
 
 #endif // METADATAFLATBUFFERWRITER

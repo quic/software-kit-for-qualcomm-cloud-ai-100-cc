@@ -89,6 +89,10 @@ void readyForAllInputs(bool waitForArrival, bool clear) {
   if ((0x1 << ctx->virtualNSPId) & _progDesc->hasInputsMask) {
     uint16_t inputSem = _progDesc->inputSem;
 
+    hostsem_t semAddr =
+        (hostsem_t *)getNSPContext()->semInfo[inputSem].semAddress;
+    auto fwSemIdx = getNSPContext()->semInfo[inputSem].semNum;
+
     // Clear the input doorbells before doing the host increment
     const uint16_t numBuffs = _progDesc->numBuffs;
     const uint16_t numInputs = _progDesc->numInputBuffs;
@@ -108,7 +112,7 @@ void readyForAllInputs(bool waitForArrival, bool clear) {
     os_release_allthreads(&ctx->inputSemaphoreReleaseLoc);
     os_load_acquire(&ctx->inputSemaphoreReleaseLoc);
 
-    os_hostsem_inc(getNSPContext()->gsmSemAddr, inputSem);
+    os_hostsem_inc(semAddr, static_cast<uint32_t>(fwSemIdx));
     if (waitForArrival) {
       waitForAllInputsReady(clear);
     }
@@ -124,6 +128,10 @@ void sendAllOutputs(bool waitForArrival, bool clear) {
   CoreInfo *ctx = getNSPContext();
   if ((0x1 << ctx->virtualNSPId) & _progDesc->hasInputsMask) {
     uint16_t outputSem = _progDesc->outputSem;
+
+    hostsem_t semAddr =
+        (hostsem_t *)getNSPContext()->semInfo[outputSem].semAddress;
+    int fwSemIdx = getNSPContext()->semInfo[outputSem].semNum;
 
     // Clear the output doorbells before doing the host decrement
     const uint16_t numBuffs = _progDesc->numBuffs;
@@ -141,7 +149,7 @@ void sendAllOutputs(bool waitForArrival, bool clear) {
     }
 
     os_global_memsync();
-    os_hostsem_dec(getNSPContext()->gsmSemAddr, outputSem);
+    os_hostsem_dec(semAddr, fwSemIdx);
     if (waitForArrival) {
       waitForAllOutputsReady(clear);
     }

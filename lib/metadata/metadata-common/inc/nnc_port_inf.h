@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 #ifndef NNC_PORT_INF_H_
 #define NNC_PORT_INF_H_
@@ -114,5 +114,19 @@ s_assert(sizeof(AICPortInfoIndexList) ==
 */
 
 typedef int (*nnc_dma_setup)(uint32_t index);
+
+typedef struct {
+   /* VA of GSM space to perform semaphore operation */
+   uint32_t semAddress;
+   /* Virtual Semaphore Number */
+   uint16_t semNum;
+   uint8_t padding[2];
+} SemaphoreInfo;
+
+// Assert that we don't have any implicit padding.
+s_assert(sizeof(SemaphoreInfo) == sizeof_member(SemaphoreInfo, semAddress) +
+                                    sizeof_member(SemaphoreInfo, semNum) +
+                                    sizeof_member(SemaphoreInfo, padding),
+         "SemaphoreInfo has implicit padding.");
 
 #endif

@@ -142,6 +142,10 @@ int qaic::Linker::execute() {
   for (auto const &s : wrapSyms_) {
     args.push_back(llvm::formatv("-Wl,--wrap,{0}", s).str());
   }
+  // FW expects the first segment to be RX which then allows the FW to
+  // efficiently share the segment with all NSPs operating the workload.
+  args.push_back("-Wl,--no-rosegment");
+  args.push_back(llvm::formatv("-Wl,-z,separate-code").str());
 
   auto rc = runProcessWithArgs(pathOrError.get(), args.getRefList());
   if (!linkStandardLibs_) {

@@ -1,10 +1,25 @@
-// Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2018-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "metadataFlatbufferWriter.h"
-
+#include "AicMetadataFlat_generated.h"
+#include "CompressL2TCMInitState.h"
+#include "metadata_flat_knownFields.h"
 #include <cassert>
 #include <cstring> // memset
+#include <tuple>
+#include <unordered_set>
+namespace {
+std::unordered_set<std::string>
+    known_metadata_fields(std::begin(known_AicMetadataFlat_fields),
+                          std::end(known_AicMetadataFlat_fields));
+
+[[nodiscard]] bool isKnownField(const std::string &requiredField) {
+  std::ignore = known_AicMetadataFlat_fields_names;
+  return known_metadata_fields.find(requiredField) !=
+         known_metadata_fields.end();
+}
+} // namespace
 
 MetadataFlatbufferWriter::MetadataFlatbufferWriter(
     uint16_t hwVersionMajor, uint16_t hwVersionMinor, uint16_t versionMajor,
@@ -18,24 +33,42 @@ MetadataFlatbufferWriter::MetadataFlatbufferWriter(
   metadata_.exitDoorbellOffset = exitDoorbellOffset;
   metadata_.hostMulticastTable =
       std::make_unique<AicMetadataFlat::AICMDHostMulticastEntryTableT>();
+  metadata_.QNNConfig = std::make_unique<AicMetadataFlat::QNNConfigDefT>();
+  metadata_.networkHeapBehavior =
+      std::make_unique<AicMetadataFlat::networkHeapBehaviorDefT>();
+}
+
+void MetadataFlatbufferWriter::serialize() {
+  flatbuffers::FlatBufferBuilder builder;
+  builder.ForceDefaults(true);
+  builder.Finish(AicMetadataFlat::Metadata::Pack(builder, &metadata_));
+  std::vector<uint8_t> outvalue(builder.GetBufferPointer(),
+                                builder.GetBufferPointer() + builder.GetSize());
+  const auto begin = reinterpret_cast<const uint8_t *>(&termMetadata);
+  const auto end = std::next(begin, sizeof(termMetadata));
+  outvalue.insert(outvalue.begin(), begin, end);
+  this->metadataBuffer = outvalue;
 }
 
 void MetadataFlatbufferWriter::finalize() {
   assert(getNumNSPs() && "Must set numNSPs");
   assert(getVTCMSize() && "Must set VTCMSize");
   assert(getL2TCMSize() && "Must set L2TCMSize");
-
+  this->addIntrospectionString("AicMetadataFlat_Metadata->requiredFields");
+  PopulateL2TCMInitStateNonZeroRegions();
   // Write network name.
   if (metadata_.networkName.empty())
     metadata_.networkName = "unnamed";
-
-  flatbuffers::FlatBufferBuilder builder;
-  builder.ForceDefaults(true);
-  builder.Finish(AicMetadataFlat::Metadata::Pack(builder, &metadata_));
-
-  std::vector<uint8_t> outvalue(builder.GetBufferPointer(),
-                                builder.GetBufferPointer() + builder.GetSize());
-  this->metadataBuffer = outvalue;
+  if (metadata_.execContext.empty()) {
+    ExecContextWriter context(ExecContextWriter::defaultType::DEFAULT);
+    setExecContext(context.getExecContext());
+  }
+  addIntrospectionString("AicMetadataFlat_Metadata->networkName");
+  if (metadata_.raw_struct_version_length == 0) {
+    serialize();
+    metadata_.raw_struct_version_length = 2 * this->metadataBuffer.size();
+  }
+  serialize();
 }
 
 bool MetadataFlatbufferWriter::writeMetadata(const char *outfile) const {
@@ -124,7 +157,7 @@ void MetadataFlatbufferWriter::addDoorbellOp(DoorbellOps &doorbellsOps,
   doorbell.data = data;
   doorbellsOps.push_back(doorbell);
 }
-
+namespace {
 static auto translateSemaphoreOp(const SemaphoreOp *s) {
   SemaphoreOpF AsemaphoreOp;
   AsemaphoreOp.semOp = s->semOp;
@@ -136,7 +169,7 @@ static auto translateSemaphoreOp(const SemaphoreOp *s) {
   return AsemaphoreOp;
 }
 
-static auto translateDoorbellOp(const DoorbellOp *s) {
+auto translateDoorbellOp(const DoorbellOp *s) {
   DoorbellOpF AdoorbellOp;
   AdoorbellOp.size = s->size;
   AdoorbellOp.mcId = s->mcId;
@@ -144,11 +177,12 @@ static auto translateDoorbellOp(const DoorbellOp *s) {
   AdoorbellOp.data = s->data;
   return AdoorbellOp;
 }
-
+} // namespace
 void MetadataFlatbufferWriter::addDMARequest(
     uint16_t num, uint64_t hostOffset, uint8_t devAddrSpace, uint64_t devOffset,
     uint32_t size, uint8_t inOut, uint16_t portID, uint16_t mcId,
-    SemaphoreOps &semaphoreOps, DoorbellOps &doorbellOps) {
+    SemaphoreOps &semaphoreOps, DoorbellOps &doorbellOps,
+    uint32_t transactionId) {
   SemaphoreOpsF these_semaphoreOps;
   for (SemaphoreOp i : semaphoreOps) {
     these_semaphoreOps.push_back(translateSemaphoreOp(&i));
@@ -158,7 +192,7 @@ void MetadataFlatbufferWriter::addDMARequest(
     these_doorbellOps.push_back(translateDoorbellOp(&i));
   }
   addDMARequest(num, hostOffset, devAddrSpace, devOffset, size, inOut, portID,
-                mcId, these_semaphoreOps, these_doorbellOps);
+                mcId, these_semaphoreOps, these_doorbellOps, transactionId);
 }
 
 void MetadataFlatbufferWriter::addSemaphoreOp(SemaphoreOpsF &semaphoreOps,
@@ -238,32 +272,45 @@ void MetadataFlatbufferWriter::addDoorbellOp(DoorbellOpsF &doorbellsOps,
 void MetadataFlatbufferWriter::addDMARequest(
     uint16_t num, uint64_t hostOffset, uint8_t devAddrSpace, uint64_t devOffset,
     uint32_t size, uint8_t inOut, uint16_t portId, uint16_t mcId,
-    SemaphoreOpsF &semaphoreOps, DoorbellOpsF &doorbellOps) {
+    SemaphoreOpsF &semaphoreOps, DoorbellOpsF &doorbellOps,
+    uint32_t transactionId) {
   assert((devAddrSpace ==
               AicMetadataFlat::AICMDDMAEntryAddrSpace_AICMDDMAAddrSpaceMC ||
           devAddrSpace ==
-              AicMetadataFlat::AICMDDMAEntryAddrSpace_AICMDDMAAddrSpaceDDR) &&
+              AicMetadataFlat::AICMDDMAEntryAddrSpace_AICMDDMAAddrSpaceDDR ||
+          devAddrSpace ==
+              AicMetadataFlat::
+                  AICMDDMAEntryAddrSpace_AICMDDMAAddrSpaceDDRDynamicShared) &&
          "Invalid DMA address space.");
+  // the below code is written this way to bypass bugs in flatbuffer 1.11.0
+  metadata_.dmaRequests.push_back(
+      std::make_unique<AicMetadataFlat::AICMDDMARequestT>());
+  auto &lastDMARequest = metadata_.dmaRequests.back();
+  lastDMARequest->num = num;
+  lastDMARequest->hostOffset = hostOffset;
+  lastDMARequest->devAddrSpace = devAddrSpace;
+  lastDMARequest->devOffset = devOffset;
+  lastDMARequest->size = size;
+  lastDMARequest->inOut = inOut;
+  lastDMARequest->portId = portId;
+  lastDMARequest->mcId = mcId;
+  lastDMARequest->transactionId = transactionId;
 
-  AicMetadataFlat::AICMDDMARequestT request;
-  request.num = num;
-  request.hostOffset = hostOffset;
-  request.devAddrSpace = devAddrSpace;
-  request.devOffset = devOffset;
-  request.size = size;
-  request.inOut = inOut;
-  request.portId = portId;
-  request.mcId = mcId;
-  for (size_t i = 0; i < semaphoreOps.size(); i++) {
-    request.semaphoreOps.emplace_back(
-        new AicMetadataFlat::AICMDSemaphoreOpT(semaphoreOps[i]));
+  for (auto semaphoreOp : semaphoreOps) {
+    lastDMARequest->semaphoreOps.push_back(
+        std::make_unique<AicMetadataFlat::AICMDSemaphoreOpT>(semaphoreOp));
   }
-  for (size_t i = 0; i < doorbellOps.size(); i++) {
-    request.doorbellOps.emplace_back(
-        new AicMetadataFlat::AICMDDoorbellOpT(doorbellOps[i]));
+  for (auto doorbellOp : doorbellOps) {
+    lastDMARequest->doorbellOps.push_back(
+        std::make_unique<AicMetadataFlat::AICMDDoorbellOpT>(doorbellOp));
   }
-  metadata_.dmaRequests.emplace_back(
-      new AicMetadataFlat::AICMDDMARequestT(request));
+
+  if (devAddrSpace ==
+          AicMetadataFlat::
+              AICMDDMAEntryAddrSpace_AICMDDMAAddrSpaceDDRDynamicShared &&
+      size > 0) {
+    enableDynamicSharedDDR();
+  }
 }
 
 void MetadataFlatbufferWriter::addNSPMulticastEntry(int core, uint8_t dynamic,
@@ -280,8 +327,8 @@ void MetadataFlatbufferWriter::addNSPMulticastEntry(int core, uint8_t dynamic,
   mcEntry.size = size;
   mcEntry.addrSpace = addrSpace;
   mcEntry.baseAddrOffset = baseAddrOffset;
-  metadata_.nspMulticastTables[core]->multicastEntries.emplace_back(
-      new AicMetadataFlat::AICMDNSPMulticastEntryT(mcEntry));
+  metadata_.nspMulticastTables[core]->multicastEntries.push_back(
+      std::make_unique<AicMetadataFlat::AICMDNSPMulticastEntryT>(mcEntry));
 }
 
 void MetadataFlatbufferWriter::addHostMulticastEntry(uint32_t mask,
@@ -289,8 +336,8 @@ void MetadataFlatbufferWriter::addHostMulticastEntry(uint32_t mask,
   AicMetadataFlat::AICMDHostMulticastEntryT mcEntry;
   mcEntry.mask = mask;
   mcEntry.size = size;
-  metadata_.hostMulticastTable->multicastEntries.emplace_back(
-      new AicMetadataFlat::AICMDHostMulticastEntryT(mcEntry));
+  metadata_.hostMulticastTable->multicastEntries.push_back(
+      std::make_unique<AicMetadataFlat::AICMDHostMulticastEntryT>(mcEntry));
 }
 
 void MetadataFlatbufferWriter::addThreadDescriptor(nnc_activate_fp entryPoint,
@@ -303,8 +350,8 @@ void MetadataFlatbufferWriter::addThreadDescriptor(nnc_activate_fp entryPoint,
     threadDesc.typeMask |= AicMetadataFlat::AICMDThreadType_AICMDThreadHMX;
   if (hasHVX)
     threadDesc.typeMask |= AicMetadataFlat::AICMDThreadType_AICMDThreadHVX;
-  metadata_.threadDescriptors.emplace_back(
-      new AicMetadataFlat::AICMDThreadDescriptorT(threadDesc));
+  metadata_.threadDescriptors.push_back(
+      std::make_unique<AicMetadataFlat::AICMDThreadDescriptorT>(threadDesc));
 }
 
 void MetadataFlatbufferWriter::addThreadDescriptor(nnc_activate_fp entryPoint,
@@ -313,8 +360,8 @@ void MetadataFlatbufferWriter::addThreadDescriptor(nnc_activate_fp entryPoint,
   AicMetadataFlat::AICMDThreadDescriptorT threadDesc;
   threadDesc.entryPoint = (uint64_t)entryPoint;
   threadDesc.typeMask = typeMask;
-  metadata_.threadDescriptors.emplace_back(
-      new AicMetadataFlat::AICMDThreadDescriptorT(threadDesc));
+  metadata_.threadDescriptors.push_back(
+      std::make_unique<AicMetadataFlat::AICMDThreadDescriptorT>(threadDesc));
 }
 
 void MetadataFlatbufferWriter::addConstantMapping(uint32_t mask,
@@ -328,6 +375,45 @@ void MetadataFlatbufferWriter::addConstantMapping(uint32_t mask,
   mapping.coreMask = mask;
   mapping.constantDataBaseOffset = offset;
   mapping.size = size;
-  metadata_.constantMappings.emplace_back(
-      new AicMetadataFlat::AICMDConstantMappingT(mapping));
+  metadata_.constantMappings.push_back(
+      std::make_unique<AicMetadataFlat::AICMDConstantMappingT>(mapping));
+}
+
+void MetadataFlatbufferWriter::addIntrospectionString(
+    const std::string &element) {
+
+  if (!isKnownField(element)) {
+    throw std::runtime_error("Attempted to add invalid field not found in "
+                             "known fields.  Invalid field: " +
+                             element);
+  }
+  // if the field is not already in the list, add it
+  if (std::find(metadata_.requiredFields.begin(),
+                metadata_.requiredFields.end(),
+                element) == metadata_.requiredFields.end()) {
+    metadata_.requiredFields.push_back(element);
+  }
+}
+
+void MetadataFlatbufferWriter::addPort(uint16_t portId,
+                                       AicMetadataFlat::AICMDPortType type) {
+  metadata_.portTable.emplace_back(portId, type);
+}
+
+void MetadataFlatbufferWriter::PopulateL2TCMInitStateNonZeroRegions() {
+  // clear the vector so we can call this function multiple times
+  metadata_.L2TCMInitStateNonZeroRegions.clear();
+  // from L2TCMInitState, find the zero regions and push to a vector
+  auto zeroRegions = FindZeroRegions(metadata_.L2TCMInitState);
+  // from the zero regions, find the non-zero regions and push to a vector
+  auto nonZeroRegions =
+      FindNonZeroRegions(zeroRegions, metadata_.L2TCMInitState.size());
+  for (auto &region : nonZeroRegions) {
+    AicMetadataFlat::NonZeroRegionT Region;
+    Region.start = region.start;
+    Region.end = region.end;
+    Region.size = region.size;
+    metadata_.L2TCMInitStateNonZeroRegions.push_back(
+        std::make_unique<AicMetadataFlat::NonZeroRegionT>(Region));
+  }
 }

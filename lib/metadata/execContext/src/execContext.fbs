@@ -1,25 +1,10 @@
-// Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
-// SPDX-License-Identifier: BSD-3-Clause-Clear
+/*
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
-#ifndef AIC_METADATA_CTX
-#define AIC_METADATA_CTX
-
-#include "nnc_err_inf.h"
-#include "nnc_mmap_inf.h"
-#include "nnc_pmu_inf.h"
-#include "nnc_port_inf.h"
-#include "nnc_reprog_mcid_inf.h"
-#include "nnc_rtld_inf.h"
-#include "nnc_udma_inf.h"
-#include "nnc_ulog_inf.h"
-
-#include <stdint.h>
-
-typedef void (*nnc_exit_fp)();
-
-/// Data provided by runtime environment to executable upon startup.
-/// The "DirectApi" information is guidance for how to initialize as argument to
-/// Thread_Execute.
+namespace ExecContext;
+/*
 typedef struct AICExecContext_ {
 
   /// ExecCtx Major and Minor Version for version compliance check
@@ -111,12 +96,7 @@ typedef struct AICExecContext_ {
   /// Function to support MCID reprogramming
   nnc_reprog_mcid_fp reprogMcidFuncPtr;
 
-  /// RTLD APIs
-  /// Note - these are added in 1.8 SDK WITHOUT bumping the ExecCtx version
-  /// number, because bumping the number would break 1.7 compatibility, while
-  /// adding these APIs here doesn't break 1.7 compatibility. The only current
-  /// user of these APIs is QNN-HTP, which won't be advertized as functional
-  /// until 1.8 SDK or later so version number checking shouldn't be a problem.
+  /// RTLD APIs related to dynamic loading
   dlopen_fp dlOpenPtr;
   dlopenbuf_fp dlOpenbufPtr;
   dlclose_fp dlClosePtr;
@@ -129,5 +109,59 @@ typedef struct AICExecContext_ {
   uint64_t *baseUtcOffsetDDR;
 
 } AICExecContext;
+*/
 
-#endif // AIC_METADATA_CTX
+enum execContextVariables : uint32 {
+    execContextMajorVersion = 0,
+    execContextMinorVersion = 1,
+    virtualNSPId = 2,
+    baseL2TCM = 3,
+    baseVTCM = 4,
+    baseConstantDataMem = 5,
+    baseSharedDDR = 6,
+    baseL2CachedDDR = 7,
+    mcAddresses = 8,
+    startTimeStamp = 9,
+    logFuncPtr = 10,
+    exitThread = 11,
+    setPMUReg = 12,
+    errFuncPtr = 13,
+    notifyHangPtr = 14,
+    udmaReadFuncPtr = 15,
+    mmapFuncPtr = 16,
+    munmapFuncPtr = 17,
+    qdssSTMPortVaddr = 18,
+    readPMUCnt = 19,
+    ddrBWMonRegVaddr = 20,
+    semaphoreListPtr = 21,
+    networkHeapAddr = 22,
+    networkHeapSize = 23,
+    reprogMcidFuncPtr = 24,
+    dlOpenPtr = 25,
+    dlOpenbufPtr = 26,
+    dlClosePtr = 27,
+    dlSymPtr = 28,
+    dlAddrPtr = 29,
+    dlErrorPtr = 30,
+    dlInfoPtr = 31,
+    baseUtcOffsetDDR = 32,
+}
+
+enum requiredDef : uint32 {
+    required = 0,
+    optional = 1,
+}
+
+table execContextField {
+    variableNeeded:execContextVariables; //the specific variable needed
+    variableSize:uint32;                 //the bytes occupied by the variable
+    execContextOffset:uint64;            //the offset of the variable in the execContext
+    isRequired:requiredDef;                     //whether the variable is required
+}
+
+table execContext {
+    execContextSize:uint32;
+    execContextFields:[execContextField];
+}
+
+root_type execContext;

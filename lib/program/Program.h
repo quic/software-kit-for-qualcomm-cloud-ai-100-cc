@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_APPLICATION_H_
@@ -6,6 +6,7 @@
 
 #include "ProgramConfig.h"
 #include "AICMetadataWriter.h"
+#include "metadataFlatbufferWriter.h"
 #include "networkdesc/qpc/inc/QAicQpc.h"
 
 namespace qaic {
@@ -14,7 +15,7 @@ class Program {
 public:
   virtual ~Program() = default;
 
-  virtual std::unique_ptr<AICMetadataWriter> generateMetadata() const = 0;
+  virtual std::unique_ptr<MetadataFlatbufferWriter> generateMetadata() const = 0;
   virtual std::unique_ptr<aicnwdesc::networkDescriptor>
   generateNetworkDescriptor() const = 0;
   virtual bool validateQPC(QAicQpcHandle *handle) const = 0;
@@ -28,7 +29,7 @@ public:
   explicit ComputeProgram(ProgramConfig &&config);
 
   const ProgramConfig &getConfig() const { return config_; }
-  std::unique_ptr<AICMetadataWriter> generateMetadata() const override;
+  std::unique_ptr<MetadataFlatbufferWriter> generateMetadata() const override;
   std::unique_ptr<aicnwdesc::networkDescriptor>
   generateNetworkDescriptor() const override;
   bool validateQPC(QAicQpcHandle *handle) const override;

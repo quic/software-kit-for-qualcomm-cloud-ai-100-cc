@@ -1,26 +1,12 @@
-// Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
-// SPDX-License-Identifier: BSD-3-Clause-Clear
+/*
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
 
-#ifndef AIC_METADATA_CTX
-#define AIC_METADATA_CTX
+#ifndef EXECCONTEXTGENERATED_32BITPOINTERS_H
+#define EXECCONTEXTGENERATED_32BITPOINTERS_H
 
-#include "nnc_err_inf.h"
-#include "nnc_mmap_inf.h"
-#include "nnc_pmu_inf.h"
-#include "nnc_port_inf.h"
-#include "nnc_reprog_mcid_inf.h"
-#include "nnc_rtld_inf.h"
-#include "nnc_udma_inf.h"
-#include "nnc_ulog_inf.h"
-
-#include <stdint.h>
-
-typedef void (*nnc_exit_fp)();
-
-/// Data provided by runtime environment to executable upon startup.
-/// The "DirectApi" information is guidance for how to initialize as argument to
-/// Thread_Execute.
-typedef struct AICExecContext_ {
+typedef struct AICExecContext_32bitPointers {
 
   /// ExecCtx Major and Minor Version for version compliance check
   uint16_t execContextMajorVersion;
@@ -29,7 +15,7 @@ typedef struct AICExecContext_ {
   uint8_t virtualNSPId;
 
   /// L2TCM base virtual address
-  uint8_t *baseL2TCM;
+  uint32_t baseL2TCM;
   ///< DirectApi: -aic-l2tcm-size DDR alloc\n
   ///<  r/w cacheable align=4kB CCCC=0x7\n
   ///<  AICMetadata.L2TCMSize\n
@@ -37,7 +23,7 @@ typedef struct AICExecContext_ {
   ///<  this may change.
 
   /// VTCM base virtual address
-  uint8_t *baseVTCM;
+  uint32_t baseVTCM;
   ///< r/w uncached align=2048 CCCC=0x6\n
   ///< AICMetadata.VTCMSize\n
   ///< DirectApi: All networks MUST map to the start of VTCM.
@@ -46,24 +32,24 @@ typedef struct AICExecContext_ {
   ///<  crossings.
 
   /// Constant data base virtual address
-  uint8_t *baseConstantDataMem;
+  uint32_t baseConstantDataMem;
   ///< Base address for statically mapped constant weights memory block.
   ///< Includes constants and static placeholders.\n
   ///< r/o uncached align=2048 CCCC=0x6
 
   /// Shared DDR data base virtual address
-  uint8_t *baseSharedDDR;
+  uint32_t baseSharedDDR;
   ///< Mutable weights memory block, Inputs and Outputs as well
   ///< as intermediate activations that don't end up in VTCM.\n
   ///< r/w uncached align=2048 CCCC=0x6
 
   /// L2 cacheable only base virtual address
-  uint8_t *baseL2CachedDDR;
+  uint32_t baseL2CachedDDR;
   ///< cccc=0xf (L1 uncached, L2 cached WB). size=4kB\n
   ///< The first 64B cache line will be locked in the L2 to guarantee latency.
 
   /// Pointer to array of virtual addresses to use for multicasts.
-  void **mcAddresses;
+  uint32_t mcAddresses;
   ///< Indexed by virtual multicast id.\n
   ///< DirectApi: nullptr
 
@@ -72,62 +58,57 @@ typedef struct AICExecContext_ {
   ///< NOTE: Firmware needs to sync UTIMER with system TOD
 
   /// Log function pointer. Should be set appropriately for each path.
-  nnc_log_fp logFuncPtr;
+  uint32_t logFuncPtr;
   /// Function used to exit thread execution
-  nnc_exit_fp exitThread;
+  uint32_t exitThread;
   ///< See 'exitDoorbellOffset description.\n
   ///< DirectApi: nullptr
 
   /// Function for setting PMU specific registers
-  nnc_pmu_set setPMUReg;
+  uint32_t setPMUReg;
   /// Error handling function
-  nnc_err_fatal_fp errFuncPtr;
+  uint32_t errFuncPtr;
   /// Report network hang
-  nnc_notify_hang_fp notifyHangPtr;
+  uint32_t notifyHangPtr;
   /// UDMA register reader function
-  nnc_udma_read_fp udmaReadFuncPtr;
+  uint32_t udmaReadFuncPtr;
   /// Memory Map functions
-  nnc_mmap_fp mmapFuncPtr;
+  uint32_t mmapFuncPtr;
   ///< DirectApi: nullptr
-  nnc_munmap_fp munmapFuncPtr;
+  uint32_t munmapFuncPtr;
   ///< DirectApi: nullptr
 
   /// Network QDSS STM Port virtual address
-  uint8_t *qdssSTMPortVaddr;
+  uint32_t qdssSTMPortVaddr;
 
   /// Function to get all PMU count registers
-  nnc_pmu_get readPMUCnt;
+  uint32_t readPMUCnt;
 
   /// DDR Bandwidth Monitor virtual address
-  uint8_t *ddrBWMonRegVaddr;
+  uint32_t ddrBWMonRegVaddr;
 
   /// Pointer to array[32] of virtual semaphore information
-  SemaphoreInfo *semaphoreListPtr;
+  uint32_t semaphoreListPtr;
 
   /// Network heap
-  uint8_t *networkHeapAddr;
+  uint32_t networkHeapAddr;
   uint64_t networkHeapSize;
 
   /// Function to support MCID reprogramming
-  nnc_reprog_mcid_fp reprogMcidFuncPtr;
+  uint32_t reprogMcidFuncPtr;
 
-  /// RTLD APIs
-  /// Note - these are added in 1.8 SDK WITHOUT bumping the ExecCtx version
-  /// number, because bumping the number would break 1.7 compatibility, while
-  /// adding these APIs here doesn't break 1.7 compatibility. The only current
-  /// user of these APIs is QNN-HTP, which won't be advertized as functional
-  /// until 1.8 SDK or later so version number checking shouldn't be a problem.
-  dlopen_fp dlOpenPtr;
-  dlopenbuf_fp dlOpenbufPtr;
-  dlclose_fp dlClosePtr;
-  dlsym_fp dlSymPtr;
-  dladdr_fp dlAddrPtr;
-  dlerror_fp dlErrorPtr;
-  dlinfo_fp dlInfoPtr;
+  /// RTLD APIs related to dynamic loading
+  uint32_t dlOpenPtr;
+  uint32_t dlOpenbufPtr;
+  uint32_t dlClosePtr;
+  uint32_t dlSymPtr;
+  uint32_t dlAddrPtr;
+  uint32_t dlErrorPtr;
+  uint32_t dlInfoPtr;
 
   /// UTC offset DDR data (input) base virtual address
-  uint64_t *baseUtcOffsetDDR;
+  uint32_t baseUtcOffsetDDR;
 
-} AICExecContext;
+} AICExecContext32bitPointers;
 
-#endif // AIC_METADATA_CTX
+#endif // EXECCONTEXTGENERATED_32BITPOINTERS_H

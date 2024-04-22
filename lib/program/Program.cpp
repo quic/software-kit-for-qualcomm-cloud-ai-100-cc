@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include <bitset>
@@ -87,7 +87,19 @@ static void getNumThreads(uint32_t &numThreads, uint32_t &numHmxThreads,
   }
 }
 
-std::unique_ptr<AICMetadataWriter> ComputeProgram::generateMetadata() const {
+using AICFlatbufMDPortType = AicMetadataFlat::AICMDPortType;
+static AICFlatbufMDPortType getPortType(AicMetadataFlat::AICMDPortType portInfoType) {
+  switch (portInfoType) {
+  default:
+  llvm:
+    errs() << "Unexpected port type.n";
+  case AICFlatbufMDPortType::AICMDPortType_AICMDPortUserIO:
+    return AICFlatbufMDPortType::AICMDPortType_AICMDPortUserIO;
+  }
+}
+
+
+std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() const {
   auto &nm_proto = config_.get();
   if (nm_proto.hwversionmajor() != 2) {
     llvm::errs() << "Config Error: hwVersionMajor isn't valid. Supported "
@@ -99,7 +111,7 @@ std::unique_ptr<AICMetadataWriter> ComputeProgram::generateMetadata() const {
                     "values are: 0\n";
     exit(-1);
   }
-  std::unique_ptr<AICMetadataWriter> metadata{new AICMetadataWriter(
+  std::unique_ptr<MetadataFlatbufferWriter> metadata{new MetadataFlatbufferWriter(
       nm_proto.hwversionmajor(), nm_proto.hwversionminor())};
 
   uint16_t numNsps = nm_proto.numnsps();
@@ -130,6 +142,8 @@ std::unique_ptr<AICMetadataWriter> ComputeProgram::generateMetadata() const {
   size_t ddrBuffersSize = 0;
   size_t l2tcmBuffersSize = 1; // AICMetadataWriter won't allow 0
   size_t vtcmBuffersSize = 1;  // AICMetadataWriter won't allow 0
+  uint16_t input_port_id = 100;
+  uint16_t output_port_id = 101;
 
   uint32_t numThreads, numHmxThreads, numHvxThreads;
   getNumThreads(numThreads, numHmxThreads, numHvxThreads, nm_proto);
@@ -201,6 +215,10 @@ std::unique_ptr<AICMetadataWriter> ComputeProgram::generateMetadata() const {
     metadata->initL2TCMWord(udmaDummyStartDescOffset + i * sizeof(uint32_t),
                             ((uint32_t *)&dummyDesc)[i]);
   }
+
+  /* Adding port id, port type for DMA request */
+  metadata->addPort(input_port_id, getPortType(AicMetadataFlat::AICMDPortType_AICMDPortUserIO));
+  metadata->addPort(output_port_id, getPortType(AicMetadataFlat::AICMDPortType_AICMDPortUserIO));
 
   // Exit DB is the last 4 bytes of DB space
   // Current FW hardcodes it to 0x460
@@ -345,8 +363,9 @@ std::unique_ptr<AICMetadataWriter> ComputeProgram::generateMetadata() const {
       AICMDDMADirection dir = (usage == USAGE_INPUT) ? AICMDDMAIn : AICMDDMAOut;
       metadata->addDMARequest(fileNum, hostOffset, getDMASpace(memType),
                               devOffset, dmaSize, dir,
-                              /*portID*/ 0, (isMC(memType) ? mcId - 1 : 0),
-                              semaphoreOps, doorbellOps);
+                              (usage == USAGE_INPUT) ? input_port_id : output_port_id,
+                              (isMC(memType) ? mcId - 1 : 0),
+                              semaphoreOps, doorbellOps, AicMetadataFlat::AICMDDMAReserved_AICMDDMATransactionIdNone);
       fileNum++;
     }
   };

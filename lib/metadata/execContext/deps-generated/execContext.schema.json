@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "definitions": {
+    "ExecContext_execContextVariables" : {
+      "type" : "string",
+      "enum": ["execContextMajorVersion", "execContextMinorVersion", "virtualNSPId", "baseL2TCM", "baseVTCM", "baseConstantDataMem", "baseSharedDDR", "baseL2CachedDDR", "mcAddresses", "startTimeStamp", "logFuncPtr", "exitThread", "setPMUReg", "errFuncPtr", "notifyHangPtr", "udmaReadFuncPtr", "mmapFuncPtr", "munmapFuncPtr", "qdssSTMPortVaddr", "readPMUCnt", "ddrBWMonRegVaddr", "semaphoreListPtr", "networkHeapAddr", "networkHeapSize", "reprogMcidFuncPtr", "dlOpenPtr", "dlOpenbufPtr", "dlClosePtr", "dlSymPtr", "dlAddrPtr", "dlErrorPtr", "dlInfoPtr", "baseUtcOffsetDDR"]
+    },
+    "ExecContext_requiredDef" : {
+      "type" : "string",
+      "enum": ["required", "optional"]
+    },
+    "ExecContext_execContextField" : {
+      "type" : "object",
+      "properties" : {
+        "variableNeeded" : {
+                "$ref" : "#/definitions/ExecContext_execContextVariables"
+              },
+        "variableSize" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295
+              },
+        "execContextOffset" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 18446744073709551615
+              },
+        "isRequired" : {
+                "$ref" : "#/definitions/ExecContext_requiredDef"
+              }
+      },
+      "additionalProperties" : false
+    },
+    "ExecContext_execContext" : {
+      "type" : "object",
+      "properties" : {
+        "execContextSize" : {
+                "type" : "integer", "minimum" : 0, "maximum" : 4294967295
+              },
+        "execContextFields" : {
+                "type" : "array", "items" : {"$ref" : "#/definitions/ExecContext_execContextField"}
+              }
+      },
+      "additionalProperties" : false
+    }
+  },
+  "$ref" : "#/definitions/ExecContext_execContext"
+}

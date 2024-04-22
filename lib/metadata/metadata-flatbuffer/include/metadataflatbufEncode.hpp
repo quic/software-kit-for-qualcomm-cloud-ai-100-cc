@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef FLATBUFF_DRIVER_FLATBUF_ENCODE_H
@@ -6,14 +6,16 @@
 
 #include "AICMetadata.h"
 #include "AICMetadataReader.h"
+#include "AicMetadataFlat_fbs.h"
 #include "AicMetadataFlat_generated.h"
-#include "AICMetadataReader.h"
+#include "AicMetadataFlat_schema_json.h"
+#include "CompressL2TCMInitState.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/registry.h"
 #include "flatbuffers/util.h"
-
-#include <iostream>
+#include "metadata_flat_knownFields.h"
 #include <fstream>
+#include <iostream>
 
 #ifndef C_DECODER_TESTING
 // ifndef isolation because json won't build for the C decoder test code
@@ -23,34 +25,47 @@ using json = nlohmann::json;
 namespace metadataFlat {
 
 // preconditions:
-//      schemafile present and located at "schemafile"
-//      *builder is instance of a metadata flatbuffer
+//      "schema" is a string containing a json file
+//      &builder is instance of a metadata flatbuffer
 // returnvalue:
 //      a json version of the metadata flatbuffer is returned as a std::string
-static std::string populateMessage(std::string schemafile,
-                                   flatbuffers::FlatBufferBuilder *builder) {
-  flatbuffers::LoadFile(schemafile.c_str(), false, &schemafile);
+[[maybe_unused]] static std::string
+populateMessage(const flatbuffers::FlatBufferBuilder &builder,
+                const std::string &schema) {
   flatbuffers::Parser parser;
   parser.opts.strict_json = true;
-  bool ok = parser.Parse(schemafile.c_str());
+  bool ok = parser.Parse(schema.c_str());
   if (!ok)
-    throw;
+    throw std::runtime_error("failed to parse schema from string");
   std::string jsongen;
-  GenerateText(parser, builder->GetBufferPointer(), &jsongen);
+  GenerateText(parser, builder.GetBufferPointer(), &jsongen);
   return jsongen;
+}
+// same as above but "schemafile" is a path to a valid json schema file
+[[maybe_unused]] static std::string
+populateMessage(const std::string &schemafilename,
+                const flatbuffers::FlatBufferBuilder &builder) {
+  std::string schemafile;
+  flatbuffers::LoadFile(schemafilename.c_str(), false, &schemafile);
+  return populateMessage(builder, schemafile);
+}
+// same as above, but we use a schemafile compiled in
+[[maybe_unused]] static std::string
+populateMessage(const flatbuffers::FlatBufferBuilder &builder) {
+  return populateMessage(builder, AicMetadataFlat_fbs);
 }
 //------------------------------------------------------------------------
 // preconditions:
 //      schemafile present and located at "schemafile"
 //      "jsonfile" is a valid path
-//      *builder is instance of a metadata flatbuffer
+//      &builder is instance of a metadata flatbuffer
 // postconditons:
-//      a json version of the metadata flatbuffer at *builder is saved at
+//      a json version of the metadata flatbuffer at &builder is saved at
 //      jsonfile
 //------------------------------------------------------------------------
 [[maybe_unused]] static void
-populateMessage(std::string schemafile, std::string jsonfile,
-                flatbuffers::FlatBufferBuilder *builder) {
+populateMessage(const std::string &schemafile, const std::string &jsonfile,
+                const flatbuffers::FlatBufferBuilder &builder) {
   std::string jsongen = populateMessage(schemafile, builder);
   flatbuffers::SaveFile(jsonfile.c_str(), jsongen.c_str(), jsongen.length(),
                         false);
@@ -73,8 +88,8 @@ static bool isInMessage(const json &flatSchemaField, json message) {
     //[0] is the name of the field.  [1] is the field's position in it's table
     //[2] is the type
     const std::string name = flatSchemaField[i][0];
-    if (pointer.contains(name)) { // field containing the same name means it's
-                                  // in there somewhere
+    if (pointer.count(name)) { // field containing the same name
+                               // means it's in there somewhere
       for (auto &it : pointer.items()) {
         if (it.key() == name) {
           pointer = it.value(); // this algorithm searches each following name
@@ -168,6 +183,33 @@ generateRequiredFields(const std::string &messageJsonPath,
 #endif // end #ifndef C_DECODER_TESTING
 namespace metadata {
 
+inline bool isFlatbufFormat(std::vector<uint8_t> metadata) {
+  if (metadata.size() < sizeof(termMetadata)) {
+    return false;
+  }
+  miniMetadata header;
+  memcpy(&header, metadata.data(), sizeof(termMetadata));
+  bool isTerminator = (header.versionMajor == termMetadata.versionMajor &&
+                       header.versionMinor == termMetadata.versionMinor);
+  if (!isTerminator) {
+    return false;
+  }
+  metadata.erase(metadata.begin(), metadata.begin() + sizeof(termMetadata));
+  // validate the flatbuffer is good
+  flatbuffers::Verifier verifier(metadata.data(), metadata.size());
+  bool ok = AicMetadataFlat::VerifyMetadataBuffer(verifier);
+  if (!ok) {
+    return false;
+  }
+  auto cppflatbuf =
+      AicMetadataFlat::UnPackMetadata((const uint8_t *)&metadata[0]);
+  if (cppflatbuf->requiredFields.empty()) { // recent metadataFlatbufferWriter
+                                            // have non empty requiredFields
+    return false;
+  }
+  return true;
+}
+
 class FlatEncode {
 public:
   //------------------------------------------------------------------------
@@ -175,18 +217,22 @@ public:
   //------------------------------------------------------------------------
 
   static const std::vector<uint8_t>
-  aicMetadataRawTranslateFlatbuff(std::vector<uint8_t> &aicMetadata_bytes) {
+  aicMetadataRawTranslateFlatbuff(std::vector<uint8_t> &aicMetdataBytes) {
+    if (isFlatbufFormat(aicMetdataBytes)) {
+      aicMetdataBytes.erase(aicMetdataBytes.begin(),
+                            aicMetdataBytes.begin() + sizeof(termMetadata));
+      return aicMetdataBytes;
+    }
     std::array<char, 0x100> metadataError;
     auto original_metadata =
-        MDR_readMetadata(aicMetadata_bytes.data(), aicMetadata_bytes.size(),
+        MDR_readMetadata(aicMetdataBytes.data(), aicMetdataBytes.size(),
                          metadataError.data(), metadataError.size());
     if (original_metadata == nullptr) {
-      std::cout << "Error parsing AICmetadata" << metadataError.data();
-      throw;
+      throw std::runtime_error("Error parsing AICmetadata");
     }
     std::vector<uint8_t> metadata_bytes((uint8_t *)original_metadata,
                                         (uint8_t *)original_metadata +
-                                            aicMetadata_bytes.size());
+                                            aicMetdataBytes.size());
     auto vec =
         metadata::FlatEncode::aicMetadataTranslateFlatbuff(metadata_bytes);
     return vec;
@@ -229,8 +275,8 @@ public:
   //------------------------------------------------------------------------
 
   static flatbuffers::FlatBufferBuilder
-  aicMetadataTranslateFlatbuff(AICMetadata data,
-                               uint64_t raw_struct_version_length,
+  aicMetadataTranslateFlatbuff(const AICMetadata &data,
+                               const uint64_t raw_struct_version_length,
                                const std::string &required_fields_filename) {
     std::vector<std::string> requiredFields;
     std::ifstream textfile(required_fields_filename);
@@ -259,11 +305,35 @@ public:
 
 private:
   //------------------------------------------------------------------------
+  // purpose: Find the nonzero regions in L2TCMInitState above a certain
+  // length precondition: valid L2TCMInitStateV supplied that is the bytes of
+  // LT2CMInitState returnvalue: populated vector of NonZeroRegion
+  //------------------------------------------------------------------------
+  static auto PopulateL2TCMInitStateNonZeroRegions(
+      const std::vector<uint8_t> L2TCMInitStateV,
+      flatbuffers::FlatBufferBuilder &builder) {
+    // clear the vector so we can call this function multiple times
+    std::vector<flatbuffers::Offset<AicMetadataFlat::NonZeroRegion>>
+        L2TCMInitStateNonZeroRegions;
+    // from L2TCMInitState, find the zero regions and push to a vector
+    auto zeroRegions = FindZeroRegions(L2TCMInitStateV);
+    // from the zero regions, find the non-zero regions and push to a vector
+    auto nonZeroRegions =
+        FindNonZeroRegions(zeroRegions, L2TCMInitStateV.size());
+    for (auto &region : nonZeroRegions) {
+      L2TCMInitStateNonZeroRegions.push_back(
+          AicMetadataFlat::CreateNonZeroRegion(builder, region.start,
+                                               region.end, region.size));
+    }
+    return L2TCMInitStateNonZeroRegions;
+  }
+  //------------------------------------------------------------------------
   // Precondition:  *aic_metadata contains NSPMulticast fields not in
   // metadata_as_flat Postcondition: metadata_as_flat contains the same fields
   //------------------------------------------------------------------------
-  static auto translateRequiredFields(std::vector<std::string> requiredFields,
-                                      flatbuffers::FlatBufferBuilder &builder) {
+  static auto
+  translateRequiredFields(const std::vector<std::string> &requiredFields,
+                          flatbuffers::FlatBufferBuilder &builder) {
 
     std::vector<flatbuffers::Offset<flatbuffers::String>> FlatV;
     for (std::string field : requiredFields) {
@@ -407,7 +477,8 @@ private:
         doorbellOpsV = 0;
       auto foo = AicMetadataFlat::CreateAICMDDMARequest(
           builder, semaphoreOpsV, doorbellOpsV, r->hostOffset, r->devOffset,
-          r->size, r->num, r->mcId, r->devAddrSpace, r->inOut, r->portId);
+          r->size, r->num, r->mcId, r->devAddrSpace, r->inOut, r->portId,
+          r->transactionId);
 
       AICMDDMARequestV.push_back(foo);
     }
@@ -445,6 +516,21 @@ private:
     auto nspMulticastTables = builder.CreateVector(nspMulticastTablesV);
     return nspMulticastTables;
   }
+  //------------------------------------------------------------------------
+  // Precondition:  *aic_metadata contains portTable fields not in
+  // metadata_as_flat Postcondition: metadata_as_flat contains the same fields
+  //------------------------------------------------------------------------
+  static auto translatePortTable(const AICMetadata &metadata,
+                                 flatbuffers::FlatBufferBuilder &builder) {
+    std::vector<AicMetadataFlat::AICMDPortEntry> portTable;
+    for (int i = 0, ie = metadata.numPorts; i < ie; ++i) {
+      const auto &port = metadata.portTable[i];
+      portTable.emplace_back(port.portId,
+                             (AicMetadataFlat::AICMDPortType)port.portType);
+    }
+    return builder.CreateVectorOfStructs(portTable.data(), portTable.size());
+  }
+
   //------------------------------------------------------------------------
   // Precondition:  *aic_metadata contains simple scalar fields not in
   // metadatabuilder Postcondition: metadatabuilder contains the same fields
@@ -497,8 +583,10 @@ private:
     auto requiredFieldsFlat = translateRequiredFields(requiredFields, builder);
     auto semaphoreInitState =
         builder.CreateVector(translateSemaphoreInitState(metadata));
-    auto L2TCMInitState =
-        builder.CreateVector(translateL2TCMInitState(metadata));
+    auto L2TCMInitStateV = translateL2TCMInitState(metadata);
+    auto L2TCMInitStateNonZeroRegions = builder.CreateVector(
+        PopulateL2TCMInitStateNonZeroRegions(L2TCMInitStateV, builder));
+    auto L2TCMInitState = builder.CreateVector(L2TCMInitStateV);
 
     auto dmaRequests = translateDMARequests(metadata, builder);
 
@@ -511,6 +599,9 @@ private:
 
     auto AICMDConstantMappings =
         builder.CreateVector(translateConstantMappings(metadata, builder));
+
+    auto portTable = translatePortTable(metadata, builder);
+
     AicMetadataFlat::MetadataBuilder metadatabuilder(builder);
 
     translateScalars(metadata, metadatabuilder);
@@ -528,7 +619,10 @@ private:
     if (metadata.numConstantMappings != 0)
       metadatabuilder.add_constantMappings(AICMDConstantMappings);
     metadatabuilder.add_raw_struct_version_length(raw_struct_version_length);
-
+    if (metadata.numPorts != 0)
+      metadatabuilder.add_portTable(portTable);
+    metadatabuilder.add_L2TCMInitStateNonZeroRegions(
+        L2TCMInitStateNonZeroRegions);
     auto AICMetadata_flat = metadatabuilder.Finish();
     builder.Finish(AICMetadata_flat);
     return builder;

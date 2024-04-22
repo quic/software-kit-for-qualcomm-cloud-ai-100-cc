@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "NSPContext.h"
@@ -18,7 +18,7 @@ void _nspContextInit(AICExecContext *ctx) {
   NSPContext.baseConstantDataMem = ctx->baseConstantDataMem;
   NSPContext.baseSharedDDR = ctx->baseSharedDDR;
   NSPContext.baseL2CachedDDR = ctx->baseL2CachedDDR;
-  NSPContext.gsmSemAddr = ctx->gsmSemAddr;
+  NSPContext.semInfo = ctx->semaphoreListPtr;
   NSPContext.mcAddresses = ctx->mcAddresses;
   NSPContext.startTimeStamp = ctx->startTimeStamp;
   NSPContext.logFuncPtr = ctx->logFuncPtr;

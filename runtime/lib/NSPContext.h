@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef _QAIC_NSPCONTEXT_H_
@@ -29,7 +29,8 @@ struct CoreInfo {
     uint8_t *baseL2CachedDDR{nullptr};
     uint8_t *baseL2PinnedLineForPause;
   };
-  uint8_t *gsmSemAddr{nullptr};
+  // Semaphore base address.
+  const SemaphoreInfo *semInfo{nullptr};
   union {
     void **mcAddresses{nullptr};
     void **mcBaseAddresses;

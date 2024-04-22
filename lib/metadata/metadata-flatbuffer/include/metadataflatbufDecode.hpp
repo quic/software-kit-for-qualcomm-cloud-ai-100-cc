@@ -1,31 +1,55 @@
-// Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #ifndef FLATBUFF_DRIVER_FLATBUF_DECODE_H
 #define FLATBUFF_DRIVER_FLATBUF_DECODE_H
-#include "metadataFlatbufferWriter.h"
-#include "AICMetadataWriter.h"
 #include "AICMetadata.h"
+#include "AICMetadataReader.h"
+#include "AICMetadataWriter.h"
 #include "AicMetadataFlat_generated.h"
+#include "metadataFlatbufferWriter.h"
 #include "metadata_flat_knownFields.h"
-
 #include <cstring>
 #include <string>
 
 namespace metadata {
 
-static const std::string networkElfMetadataFBSection("metadata_fb");
+static const std::string networkElfMetadataSection("metadata");
+static const std::string networkElfMetadataFBSection_legacy("metadata_fb");
 
 class FlatDecode {
 public:
   //------------------------------------------------------------------------
+  // The "terminator metadata" is a 4 byte header that goes
+  // in front of metadata, such that section["metadata"]=
+  //[term metadata][metadata in flatbuffer format].
+  // Input: flatbuf that may have a terminator metadata header
+  // Output: flatbuf with terminator metadata header removed
+  //------------------------------------------------------------------------
+  static auto stripTerminatorMetadata(std::vector<uint8_t> &flatbuf) {
+    (void)networkElfMetadataSection;
+    (void)networkElfMetadataFBSection_legacy;
+    if (!flatbufVerifyMetadataBuffer(flatbuf) &&
+        flatbuf.size() > sizeof(termMetadata)) {
+      miniMetadata header;
+      memcpy(&header, flatbuf.data(), sizeof(termMetadata));
+      if (header.versionMajor == termMetadata.versionMajor &&
+          header.versionMinor == termMetadata.versionMinor) {
+        // it failed to verify because the header is a termMetadata
+        flatbuf.erase(flatbuf.begin(), flatbuf.begin() + sizeof(termMetadata));
+      }
+    }
+    return flatbuf;
+  }
+  //------------------------------------------------------------------------
   // Same as readMetadataFlat but returns a C++ STL object of the flatbuffer
   // if result string is empty, this function worked
   //------------------------------------------------------------------------
-  static auto readMetadataFlatNativeCPP(const std::vector<uint8_t> &flatbuf,
+  static auto readMetadataFlatNativeCPP(std::vector<uint8_t> &flatbuf,
                                         std::string &resultString) {
     std::unique_ptr<AicMetadataFlat::MetadataT> retvalue;
     resultString = ""; // empty result string means it worked
+    flatbuf = stripTerminatorMetadata(flatbuf);
     if (!flatbufVerifyMetadataBuffer(flatbuf)) {
       resultString += " metadataflat failed to verify \n";
       return retvalue;
@@ -48,9 +72,9 @@ public:
   //                (5) if result string is empty, this function worked
   //------------------------------------------------------------------------
   static const AicMetadataFlat::Metadata *
-  readMetadataFlat(const std::vector<uint8_t> &flatbuf,
-                   std::string &resultString) {
+  readMetadataFlat(std::vector<uint8_t> &flatbuf, std::string &resultString) {
     resultString = ""; // empty result string means it worked
+    flatbuf = stripTerminatorMetadata(flatbuf);
     if (!flatbufVerifyMetadataBuffer(flatbuf)) {
       resultString += " metadataflat failed to verify \n";
       return nullptr;
@@ -72,7 +96,7 @@ public:
   //------------------------------------------------------------------------
   template <class W>
   static auto
-  flatbufValidateTranslateAicMetadata(const std::vector<uint8_t> &flatbuf) {
+  flatbufValidateTranslateAicMetadata(std::vector<uint8_t> &flatbuf) {
     std::string errString;
     auto metadataAsFlat = readMetadataFlat(flatbuf, errString);
     if (metadataAsFlat == nullptr) {
@@ -84,8 +108,8 @@ public:
 
   // purpose: same as other version, but returns an STL vector instead
   template <class W>
-  static const std::vector<uint8_t> flatbufValidateTranslateAicMetadataVector(
-      const std::vector<uint8_t> &flatbuf) {
+  static const std::vector<uint8_t>
+  flatbufValidateTranslateAicMetadataVector(std::vector<uint8_t> &flatbuf) {
     auto tempAicmetadata = flatbufValidateTranslateAicMetadata<W>(flatbuf);
     auto temp = tempAicmetadata.getMetadata();
     return temp;
@@ -97,8 +121,6 @@ public:
     }
     return false;
   }
-
-private:
   static bool flatbufVerifyMetadataBuffer(const std::vector<uint8_t> &flatbuf) {
     flatbuffers::Verifier verify((const uint8_t *)&flatbuf[0], flatbuf.size());
     bool ok = AicMetadataFlat::VerifyMetadataBuffer(verify);
@@ -107,6 +129,8 @@ private:
     }
     return true;
   }
+
+private:
   static bool flatbufVerifyCompatibility(const std::vector<uint8_t> &flatbuf) {
     auto metadataAsFlat =
         AicMetadataFlat::GetMetadata((const uint8_t *)&flatbuf[0]);
@@ -133,9 +157,9 @@ private:
     translateMetadataThreadDescriptors(&aicMetadata, metadataAsFlat);
     translateMetadataConstantMappings(&aicMetadata, metadataAsFlat);
     translateMetadataDMARequests(&aicMetadata, metadataAsFlat);
+    translateMetadataPortTable(&aicMetadata, metadataAsFlat);
 
     aicMetadata.finalize();
-
     return aicMetadata;
   }
 
@@ -152,13 +176,16 @@ private:
         missingFields.push_back(required_field);
       }
     }
-    if (missingFields.size() != 0) {
-      std::cout << "unable to load network: missing these fields: "
+    if (!missingFields.empty()) {
+      std::cout << "Network features unsupported by this Platform version "
+                   "encountered:  "
                 << std::endl;
       for (std::string s : missingFields) {
         std::cout << s << std::endl;
       }
-      std::cout << "!" << std::endl;
+      std::cout << ".  A newer version of the platform is required to run this "
+                   "network."
+                << std::endl;
       return false;
     }
     return true;
@@ -274,7 +301,8 @@ private:
             thisrequest->num(), thisrequest->hostOffset(),
             thisrequest->devAddrSpace(), thisrequest->devOffset(),
             thisrequest->size(), thisrequest->inOut(), thisrequest->portId(),
-            thisrequest->mcId(), semopsvec, dbopsvec);
+            thisrequest->mcId(), semopsvec, dbopsvec,
+            thisrequest->transactionId());
       }
     }
   }
@@ -362,6 +390,22 @@ private:
     }
   }
 
+  //------------------------------------------------------------------------
+  // Precondition:  metadataAsFlat contains portTable fields not in
+  // *aicMetadata Postcondition: aicMetadata contains the same fields
+  //------------------------------------------------------------------------
+  template <class W>
+  static void
+  translateMetadataPortTable(W *aicMetadata,
+                             const AicMetadataFlat::Metadata *metadataAsFlat) {
+    const auto &sourcePortTable = metadataAsFlat->portTable();
+    if (sourcePortTable != nullptr) {
+      for (const auto &port : *sourcePortTable) {
+        aicMetadata->addPort(port->portId(), port->portType());
+      }
+    }
+  }
+
   // return true if requiredField in known_AicMetadataFlat_fields
   static bool searchKnownFields(std::string requiredField) {
     // hashmap would be O(n)
@@ -369,7 +413,7 @@ private:
     // doing O(n^2) for now
     (void)known_AicMetadataFlat_fields_names;
     for (unsigned int i = 0; i < known_fields_length; i++) {
-      if ((requiredField.size() == known_AicMetadataFlat_fields_length[i]) and
+      if ((requiredField.size() == known_AicMetadataFlat_fields_length[i]) &&
           (strncmp(requiredField.c_str(), known_AicMetadataFlat_fields[i],
                    known_AicMetadataFlat_fields_length[i]) == 0))
         return true;
@@ -377,6 +421,35 @@ private:
     return false;
   }
 };
+//------------------------------------------------------------------------
+// This prints the flatbuffer in the same "dump" format that you can view
+// in AICMetadata.  Implemented by conversion as the conversion is unit
+// tested.
+//------------------------------------------------------------------------
+inline void dump(std::vector<uint8_t> &flatbuf_bytes, FILE *fd = nullptr) {
+  auto vec = metadata::FlatDecode::flatbufValidateTranslateAicMetadataVector<
+      AICMetadataWriter>(flatbuf_bytes);
+  constexpr int errBufLen = 1024;
+  char errbuf[errBufLen] = {0};
+  auto metadata = MDR_readMetadata(vec.data(), vec.size(), errbuf, errBufLen);
+  if (!metadata) {
+    throw std::runtime_error("Failed to parse metadata " + std::string(errbuf));
+  }
+  AICMetadata_dump(metadata, fd);
+}
+//------------------------------------------------------------------------
+// Input: metadata for a network in C++ data structure
+// Output : bytes required of DRAM on the soc to execute the network
+//------------------------------------------------------------------------
+[[nodiscard]] inline uint64_t
+metadataGetTotalRequiredMemory(const AicMetadataFlat::MetadataT *metadata) {
+  constexpr auto SOC_PADDING =
+      2048; // these memory buffers have to be aligned to 2048 bytes
+  constexpr auto PADDING_MULTIPLIER = 4; // just to be on the safe side
+  return metadata->staticSharedDDRSize + metadata->staticConstantsSize +
+         metadata->dynamicSharedDDRSize + metadata->dynamicConstantsSize +
+         SOC_PADDING * PADDING_MULTIPLIER;
+}
 
 } // namespace metadata
 #endif // FLATBUFF_DRIVER_FLATBUF_DECODE_H
