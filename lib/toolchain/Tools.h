@@ -4,9 +4,11 @@
 #ifndef _QAIC_TOOLCHAIN_TOOLS_H_
 #define _QAIC_TOOLCHAIN_TOOLS_H_
 
+#include <string>
 #include <vector>
 
 #include "llvm/ADT/APInt.h"
+#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorOr.h"
 

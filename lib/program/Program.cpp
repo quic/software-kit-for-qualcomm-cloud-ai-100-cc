@@ -24,6 +24,10 @@ const uint32_t L2TCM_MAX_SIZE = 1 * 1024 * 1024; /*1MB L2TCM*/
 const uint32_t COMPUTE_MAX_SEMAPHORES = 2;
 const uint32_t DB_SIZE = 4; /*Bytes per doorbell*/
 
+static uint64_t alignTo(uint64_t x, uint64_t m) {
+  return ((x + (m - 1)) & ~(m - 1)); // Only works if alignment is 2^n
+}
+
 ComputeProgram::ComputeProgram(ProgramConfig &&config)
     : config_(std::move(config)), entryPoint_(0) {}
 
