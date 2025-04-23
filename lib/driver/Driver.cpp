@@ -7,6 +7,7 @@
 #include "DriverOptions.h"
 
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/Path.h"
 
@@ -99,7 +100,7 @@ void Driver::printHelp() {
   auto &optTable = getDriverOptTable();
   std::string Usage =
       llvm::formatv("{0} [options] file...", RawDriverArgv_[0]).str();
-  optTable.PrintHelp(llvm::outs(), Usage.c_str(),
+  optTable.printHelp(llvm::outs(), Usage.c_str(),
                      "qaic-cc QAIC Compiler Driver", false, false,
                      /*ShowAllAliases=*/false);
 }
