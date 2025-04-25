@@ -7,7 +7,7 @@ compute applications that will run on the Qualcomm Cloud AI 100.
 
 ## Prerequisites
 
-All Dependencies have been tested on an Ubuntu 20.04 system.
+All Dependencies have been tested on an Ubuntu 22.04 system.
 
 ### Hexagon Tools
 Obtain Hexagon tools from `https://github.com/quic/toolchain_for_hexagon`
