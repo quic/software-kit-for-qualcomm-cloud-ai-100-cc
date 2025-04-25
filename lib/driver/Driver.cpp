@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2021-2022, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
 #include "Driver.h"
