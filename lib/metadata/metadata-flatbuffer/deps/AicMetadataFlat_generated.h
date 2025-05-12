@@ -297,16 +297,16 @@ inline const char *EnumNameAICMDDMADirection(AICMDDMADirection e) {
 enum AICMDPortType : int8_t {
   AICMDPortType_AICMDPortUserIO = 0,
   AICMDPortType_AICMDPortP2P = 1,
-  AICMDPortType_AICMDPortMQTH = 2,
+  AICMDPortType_AICMDPortMDP = 2,
   AICMDPortType_MIN = AICMDPortType_AICMDPortUserIO,
-  AICMDPortType_MAX = AICMDPortType_AICMDPortMQTH
+  AICMDPortType_MAX = AICMDPortType_AICMDPortMDP
 };
 
 inline const AICMDPortType (&EnumValuesAICMDPortType())[3] {
   static const AICMDPortType values[] = {
     AICMDPortType_AICMDPortUserIO,
     AICMDPortType_AICMDPortP2P,
-    AICMDPortType_AICMDPortMQTH
+    AICMDPortType_AICMDPortMDP
   };
   return values;
 }
@@ -315,14 +315,14 @@ inline const char * const *EnumNamesAICMDPortType() {
   static const char * const names[4] = {
     "AICMDPortUserIO",
     "AICMDPortP2P",
-    "AICMDPortMQTH",
+    "AICMDPortMDP",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAICMDPortType(AICMDPortType e) {
-  if (flatbuffers::IsOutRange(e, AICMDPortType_AICMDPortUserIO, AICMDPortType_AICMDPortMQTH)) return "";
+  if (flatbuffers::IsOutRange(e, AICMDPortType_AICMDPortUserIO, AICMDPortType_AICMDPortMDP)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAICMDPortType()[index];
 }
@@ -2959,7 +2959,7 @@ inline const flatbuffers::TypeTable *AICMDPortTypeTypeTable() {
   static const char * const names[] = {
     "AICMDPortUserIO",
     "AICMDPortP2P",
-    "AICMDPortMQTH"
+    "AICMDPortMDP"
   };
   static const flatbuffers::TypeTable tt = {
     flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
