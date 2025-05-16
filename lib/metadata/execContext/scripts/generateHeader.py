@@ -1,4 +1,4 @@
-## Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+## Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 ## SPDX-License-Identifier: BSD-3-Clause-Clear
 
 # goal : generate struct AICExecContext_ from the input path and write it to the output path using fire
@@ -66,7 +66,7 @@ def generateIncludeGuards(outputpath):
 def get_copyright_notice():
     current_year = str(datetime.datetime.now().year)
     copyright_notice = "/*\n" \
-    " * Copyright (c) 2021-" + current_year + " Qualcomm Innovation Center, Inc. All rights reserved.\n" \
+    " * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.\n" \
     " * SPDX-License-Identifier: BSD-3-Clause-Clear\n" \
     " */\n"
     return copyright_notice
