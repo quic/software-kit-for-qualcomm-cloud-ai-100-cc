@@ -21,6 +21,7 @@ In order to build, in addition to the base system, you must install:
 - ninja-build
 - clang
 - zlib1g-dev
+- libzstd-dev
 - dependencies for above
 - CMake 3.24 or higher.  Instructions are at https://apt.kitware.com/
 
