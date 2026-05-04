@@ -15,22 +15,34 @@ using namespace llvm;
 #define DEBUG_TYPE "toolchain"
 
 bool qaic::Toolset::isEmptyToolset() const {
-  return (!CC.hasValue() && !CXX.hasValue() && !LD.hasValue() &&
-          !AR.hasValue() && !Objcopy.hasValue());
+  return (!CC.has_value() && !CXX.has_value() && !LD.has_value() &&
+          !AR.has_value() && !Objcopy.has_value());
 }
 
 void qaic::Tools::loadStandardEnvPaths() {
   // Add hexagon tools dir if defined
+#if LLVM_VERSION_MAJOR >= 18
   auto hexToolsDir = sys::Process::GetEnv("HEXAGON_TOOLS_DIR");
-  if (hexToolsDir.hasValue()) {
-    setHexagonToolsPath(hexToolsDir.getValue() + "/bin");
+#else
+  auto hexenv = sys::Process::GetEnv("HEXAGON_TOOLS_DIR");
+  std::optional<std::string> hexToolsDir = *hexenv;
+#endif
+
+  if (hexToolsDir.has_value()) {
+    setHexagonToolsPath(hexToolsDir.value() + "/bin");
   }
 
   // Add PATHs to tool search
+#if LLVM_VERSION_MAJOR >= 18
   auto pathEnv = sys::Process::GetEnv("PATH");
-  if (pathEnv.hasValue()) {
+#else
+  auto penv = sys::Process::GetEnv("PATH");
+  std::optional<std::string> pathEnv = *penv;
+#endif
+
+  if (pathEnv.has_value()) {
     SmallVector<StringRef, 16> paths;
-    SplitString(pathEnv.getValue(), paths,
+    SplitString(pathEnv.value(), paths,
                 std::string("") + sys::EnvPathSeparator);
     for (auto &s : paths) {
       addSearchPath(s);
@@ -90,26 +102,26 @@ qaic::Tools::findProgramByName(StringRef program,
 
 ErrorOr<std::string> qaic::Tools::findCCompiler() const {
   std::vector<StringRef> paths = getSearchPaths();
-  return findProgramByName(hexagonToolset_.CC.getValueOr("clang"), paths);
+  return findProgramByName(hexagonToolset_.CC.value_or("clang"), paths);
 }
 
 ErrorOr<std::string> qaic::Tools::findCXXCompiler() const {
   std::vector<StringRef> paths = getSearchPaths();
-  return findProgramByName(hexagonToolset_.CXX.getValueOr("clang++"), paths);
+  return findProgramByName(hexagonToolset_.CXX.value_or("clang++"), paths);
 }
 
 ErrorOr<std::string> qaic::Tools::findLinker() const {
   std::vector<StringRef> paths = getSearchPaths();
-  return findProgramByName(hexagonToolset_.LD.getValueOr("llvm-link"), paths);
+  return findProgramByName(hexagonToolset_.LD.value_or("llvm-link"), paths);
 }
 
 ErrorOr<std::string> qaic::Tools::findAr() const {
   std::vector<StringRef> paths = getSearchPaths();
-  return findProgramByName(hexagonToolset_.AR.getValueOr("llvm-ar"), paths);
+  return findProgramByName(hexagonToolset_.AR.value_or("llvm-ar"), paths);
 }
 
 ErrorOr<std::string> qaic::Tools::findObjcopy() const {
   std::vector<StringRef> paths = getSearchPaths();
   return findProgramByName(
-        hexagonToolset_.Objcopy.getValueOr("llvm-objcopy"), paths);
+        hexagonToolset_.Objcopy.value_or("llvm-objcopy"), paths);
 }

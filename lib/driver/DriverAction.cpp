@@ -376,7 +376,7 @@ bool ExtractEntryPointAddressAction::runImpl(DriverContext &context) {
   }
 
   // Find the _qaic_start symbol within the elf
-  llvm::Optional<uint64_t> activateAddr;
+  std::optional<uint64_t> activateAddr;
   for (SymbolRef Sym : Object->symbols()) {
     auto type = Sym.getType();
     if (!type || type.get() != SymbolRef::ST_Function)
@@ -391,11 +391,11 @@ bool ExtractEntryPointAddressAction::runImpl(DriverContext &context) {
     }
   }
 
-  context.getProgram()->setEntrypointAddr(activateAddr.getValue());
-  QAIC_DEBUG_STREAM("found activate function at " << activateAddr.getValue()
+  context.getProgram()->setEntrypointAddr(activateAddr.value());
+  QAIC_DEBUG_STREAM("found activate function at " << activateAddr.value()
                                                   << "\n");
 
-  return activateAddr.hasValue();
+  return activateAddr.has_value();
 };
 
 BuildQPCAction::BuildQPCAction(Driver &D) : DriverAction(D, "BuildQPCAction") {}

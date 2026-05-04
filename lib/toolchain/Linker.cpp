@@ -62,7 +62,11 @@ void qaic::Linker::endWholeArchive() {
 }
 
 void qaic::Linker::addLinkerSearchPath(llvm::StringRef path) {
+#if LLVM_VERSION_MAJOR >= 18
+  if (path.starts_with("-Wl,-L")) {
+#else
   if (path.startswith("-Wl,-L")) {
+#endif
     path.consume_front("-Wl,-L");
   }
   std::string arg = "-Wl,-L";

@@ -4,22 +4,22 @@
 #ifndef _QAIC_TOOLCHAIN_TOOLS_H_
 #define _QAIC_TOOLCHAIN_TOOLS_H_
 
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "llvm/ADT/APInt.h"
-#include "llvm/ADT/Optional.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/ErrorOr.h"
 
 namespace qaic {
 
 struct Toolset {
-  llvm::Optional<std::string> CC;
-  llvm::Optional<std::string> CXX;
-  llvm::Optional<std::string> LD;
-  llvm::Optional<std::string> AR;
-  llvm::Optional<std::string> Objcopy;
+  std::optional<std::string> CC;
+  std::optional<std::string> CXX;
+  std::optional<std::string> LD;
+  std::optional<std::string> AR;
+  std::optional<std::string> Objcopy;
 
   /// Returns true if no tool is set
   bool isEmptyToolset() const;

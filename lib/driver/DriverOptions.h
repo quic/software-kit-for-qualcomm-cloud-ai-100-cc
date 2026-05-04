@@ -15,9 +15,15 @@ namespace options {
  */
 enum ID {
   OPT_INVALID = 0,
-#define OPTION(PREFIX, NAME, ID, KIND, GROUP, ALIAS, ALIASARGS, FLAGS, PARAM,  \
-               HELPTEXT, METAVAR, VALUES)                                      \
+#if LLVM_VERSION_MAJOR >= 18
+#define OPTION(PREFIX, NAME, ID, KIND, GROUP, ALIAS, ALIASARGS, FLAGS, \
+               VISIBILITY, PARAM, HELPTEXT, METAVAR, VALUES)           \
   OPT_##ID,
+#else
+#define OPTION(PREFIX, NAME, ID, KIND, GROUP, ALIAS, ALIASARGS, FLAGS, PARAM,  \
+               HELPTEXT, METAVAR, VALUES) \
+  OPT_##ID,
+#endif
 #include "DriverOptions.inc"
 #undef OPTION
   LastOption,

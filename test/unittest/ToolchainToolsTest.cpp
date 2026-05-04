@@ -4,7 +4,6 @@
 #include <gtest/gtest.h>
 
 #include "toolchain/Tools.h"
-#include "llvm/Support/Host.h"
 
 using namespace qaic;
 

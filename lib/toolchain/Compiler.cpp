@@ -77,7 +77,11 @@ void qaic::Compiler::addSystemIncludePath(llvm::StringRef path) {
 }
 
 void qaic::Compiler::addWarningFlag(llvm::StringRef flag) {
+#if LLVM_VERSION_MAJOR >= 18
+  if (flag.starts_with("-W")) {
+#else
   if (flag.startswith("-W")) {
+#endif
     warningFlags_.push_back(flag.str());
   } else {
     std::string arg = "-W";
