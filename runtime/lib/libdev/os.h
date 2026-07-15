@@ -14,6 +14,7 @@ void os_global_memsync();
 
 // Host/PCI semaphores.
 typedef void *hostsem_t;
+void os_hostsem_init(hostsem_t s, uint32_t semNum, uint32_t val);
 void os_hostsem_inc(hostsem_t s, uint32_t semNum);
 void os_hostsem_dec(hostsem_t s, uint32_t semNum);
 

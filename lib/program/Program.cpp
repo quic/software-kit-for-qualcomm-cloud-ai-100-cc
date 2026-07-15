@@ -145,14 +145,16 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
   const uint16_t inputSem = 0;
   const uint16_t outputSem = 1;
 
-  size_t ddrBuffersSize = 0;
+  size_t ddrBuffersSize = nm_proto.qpcshim() ? 0x2000000 : 0;
   size_t l2tcmBuffersSize = 1; // AICMetadataWriter won't allow 0
   size_t vtcmBuffersSize = 1;  // AICMetadataWriter won't allow 0
   uint16_t input_port_id = 100;
   uint16_t output_port_id = 101;
 
   uint32_t numThreads, numHmxThreads, numHvxThreads;
+  constexpr uint32_t MAX_HVX_THREADS = 4;
   getNumThreads(numThreads, numHmxThreads, numHvxThreads, nm_proto);
+  numHvxThreads = std::min(numHvxThreads, MAX_HVX_THREADS);
 
   // MC ID 0 is for L2TCM doorbells
   // DBNum is for input buffer DBs, then output buffer DBs
@@ -178,11 +180,17 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
     if (!buff.nodoorbell())
       numDBs++;
   }
-  if (numDBs < 281) {
-    numDBs = 281;
+  const uint32_t MAX_DBS = nm_proto.qpcshim() ? 32768 : 281;
+  if (numDBs < static_cast<int>(MAX_DBS)) {
+    numDBs = MAX_DBS;
   } else {
-    assert(numDBs < 281 &&
-           "Can only have 280 buffer doorbells due to hardcoded FW");
+    if (nm_proto.qpcshim()) {
+      assert(numDBs < static_cast<int>(MAX_DBS) &&
+             "Can only have 32767 buffer doorbells due to hardcoded FW");
+    } else {
+      assert(numDBs < static_cast<int>(MAX_DBS) &&
+             "Can only have 280 buffer doorbells due to hardcoded FW");
+    }
   }
   const unsigned int DBSpaceSize = (numDBs * DB_SIZE);
   metadata->addHostMulticastEntry(allNspsMask, DBSpaceSize);
@@ -200,9 +208,20 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
   //  - udma dummy descriptor
   //  - udma descriptors (8 per thread?)
   //  - user data
-  uint32_t udmaDummyStartDescOffset = alignTo(DBSpaceSize, CACHE_LINE_SIZE);
-  uint32_t udmaBufferStartOffset = alignTo(
-      udmaDummyStartDescOffset + sizeof(aic::DMADescriptor), CACHE_LINE_SIZE);
+  uint32_t udmaDummyStartDescOffset;
+  uint32_t udmaBufferStartOffset;
+  if (nm_proto.qpcshim()) {
+    // 128k DBs, 128k CommandSet, 128k Udma descriptors, 128k Debug info
+    uint32_t reservedCommandSetSize = 0x20000;
+    udmaDummyStartDescOffset =
+        alignTo(DBSpaceSize + reservedCommandSetSize, CACHE_LINE_SIZE);
+    udmaBufferStartOffset = alignTo(
+        udmaDummyStartDescOffset + sizeof(aic::DMADescriptor), CACHE_LINE_SIZE);
+  } else {
+    udmaDummyStartDescOffset = alignTo(DBSpaceSize, CACHE_LINE_SIZE);
+    udmaBufferStartOffset = alignTo(
+        udmaDummyStartDescOffset + sizeof(aic::DMADescriptor), CACHE_LINE_SIZE);
+  }
   uint32_t udmaBufferSize =
       numThreads * CACHE_LINE_SIZE * NUM_UDMA_CACHELINES_PER_THREAD;
 
@@ -234,7 +253,7 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
   mcId++;
 
   ProgramDesc progDesc(/*exitDB*/ numDBs - 1, inputSem, outputSem, numThreads);
-  assert(numDBs - 1 == 280);
+  assert(numDBs - 1 == static_cast<int>(MAX_DBS - 1));
 
   auto processBuff = [&](const aicnwdesc::IODescription &buff,
                          usageType_t usage, uint16_t semNum,
@@ -283,7 +302,8 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
                               std::to_string(L2TCM_MAX_SIZE) + "\n";
           exit(-1);
         }
-        if (devOffset + baseAddrOffset < reservedL2TCMSize) {
+        if (!nm_proto.qpcshim() &&
+            (devOffset + baseAddrOffset < reservedL2TCMSize)) {
           llvm::errs()
               << "Config Error: L2TCM buffers can't start before offset " +
                      std::to_string(reservedL2TCMSize) + " when running with " +
@@ -342,7 +362,7 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
       llvm::errs() << "Only Input buffers can have allowPartial set\n";
       exit(-1);
     } else if (usage == USAGE_OUTPUT) {
-      metadata->initL2TCMWord(DBOffset, DBData);
+      metadata->initL2TCMWord(DBOffset, nm_proto.qpcshim() ? 0 : DBData);
     } else if (usage == USAGE_INTERNAL) {
       metadata->initL2TCMWord(DBOffset, 0);
     } else {
@@ -397,8 +417,8 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
 
   // Output buffers
   semNum = outputSem;
-  semInitVal = std::bitset<aic::MAX_NUM_CORES>(outMask).count();
-  semWaitVal = 0;
+  semInitVal = nm_proto.qpcshim() ? 0 : std::bitset<aic::MAX_NUM_CORES>(outMask).count();
+  semWaitVal = nm_proto.qpcshim() ? std::bitset<aic::MAX_NUM_CORES>(outMask).count() : 0;
   lastIndex = nm_proto.outputs_size() - 1;
   metadata->initSemaphore(semNum, semInitVal);
   for (int i = 0; i < nm_proto.outputs_size(); i++)
@@ -488,6 +508,10 @@ std::unique_ptr<MetadataFlatbufferWriter> ComputeProgram::generateMetadata() con
   for (unsigned int i = 0; i < numHmxThreads; i++)
     metadata->addThreadDescriptor(entryPoint, true, false);
 
+  // Setup remaining threads
+  for (unsigned int i = numHvxThreads + numHmxThreads; i < numThreads; i++)
+    metadata->addThreadDescriptor(entryPoint, false, false);
+
   metadata->finalize();
 
   return metadata;
@@ -510,17 +534,6 @@ ComputeProgram::generateNetworkDescriptor() const {
   uint32_t numThreads, numHmxThreads, numHvxThreads;
   getNumThreads(numThreads, numHmxThreads, numHvxThreads, nm_proto);
   nw_proto->set_num_threads(numThreads);
-  nw_proto->set_num_hvx_threads(numHvxThreads);
-  // Add thread_groups
-  for (i = 0; i < numThreads; i++) {
-    nw_proto->add_thread_groups(i < numHvxThreads ? 0 : 1);
-  }
-  const std::vector<std::string> threadGroups = {"HVX", "HMX"};
-  nw_proto->set_thread_group_issue_count(threadGroups.size());
-  // Add thread_group_names
-  for (i = 0; i < threadGroups.size(); i++) {
-    nw_proto->add_thread_group_names(threadGroups[i]);
-  }
   nw_proto->set_batch_size(1);
   // don't add RuntimeLoadableConstant runtime_loadable_constants (name, size,
   // offset)
@@ -534,6 +547,9 @@ ComputeProgram::generateNetworkDescriptor() const {
     buffName = llvm::formatv("inputBuff_{0}", i);
     in->set_name(buffName.c_str());
     in->set_is_partial_allowed(nm_proto.inputs(i).allowpartial());
+    if (nm_proto.qpcshim()) {
+      in->set_skip_partial_header(true);
+    }
     in->set_align(getTypeSize(
         nm_proto.inputs(i)
             .type()));

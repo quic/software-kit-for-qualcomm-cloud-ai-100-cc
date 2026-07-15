@@ -11,7 +11,8 @@ set(RUNTIME_SRCS
   BufferDesc.cpp
   NSPContext.cpp
   Exit.cpp
-  ComputeAPI.cpp)
+  ComputeAPI.cpp
+  SimpleAPI.cpp)
 
 # Compile the HW target runtime
 add_library(qaicrt STATIC ${RUNTIME_SRCS})
@@ -30,7 +31,7 @@ target_include_directories(qaicrt PUBLIC ${QAIC_METADATA_SOURCE_INCLUDE_PATH})
 target_compile_definitions(qaicrt PRIVATE)
 install(TARGETS qaicrt DESTINATION dev/lib/x86_64/compute)
 
-install(FILES BufferDesc.h Exit.h ComputeAPI.h DESTINATION dev/inc/compute)
+install(FILES BufferDesc.h Exit.h ComputeAPI.h Log.h SimpleAPI.h DESTINATION dev/inc/compute)
 
 # Compile libdev
 add_library(devRuntime

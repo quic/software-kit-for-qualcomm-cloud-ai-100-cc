@@ -72,34 +72,6 @@ struct Metadata;
 struct MetadataBuilder;
 struct MetadataT;
 
-inline const flatbuffers::TypeTable *AICMDSemaphoreOpTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDDoorbellOpTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDPortEntryTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDDMARequestTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDNSPMulticastEntryTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDNSPMulticastEntryTableTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDHostMulticastEntryTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDHostMulticastEntryTableTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDThreadDescriptorTypeTable();
-
-inline const flatbuffers::TypeTable *AICMDConstantMappingTypeTable();
-
-inline const flatbuffers::TypeTable *QNNConfigDefTypeTable();
-
-inline const flatbuffers::TypeTable *networkHeapBehaviorDefTypeTable();
-
-inline const flatbuffers::TypeTable *NonZeroRegionTypeTable();
-
-inline const flatbuffers::TypeTable *MetadataTypeTable();
-
 enum AICHardwareVersion : int64_t {
   AICHardwareVersion_AIC_HW_VER_1_0 = 65536LL,
   AICHardwareVersion_AIC_HW_VER_2_0 = 131072LL,
@@ -297,16 +269,16 @@ inline const char *EnumNameAICMDDMADirection(AICMDDMADirection e) {
 enum AICMDPortType : int8_t {
   AICMDPortType_AICMDPortUserIO = 0,
   AICMDPortType_AICMDPortP2P = 1,
-  AICMDPortType_AICMDPortMDP = 2,
+  AICMDPortType_AICMDPortTH = 2,
   AICMDPortType_MIN = AICMDPortType_AICMDPortUserIO,
-  AICMDPortType_MAX = AICMDPortType_AICMDPortMDP
+  AICMDPortType_MAX = AICMDPortType_AICMDPortTH
 };
 
 inline const AICMDPortType (&EnumValuesAICMDPortType())[3] {
   static const AICMDPortType values[] = {
     AICMDPortType_AICMDPortUserIO,
     AICMDPortType_AICMDPortP2P,
-    AICMDPortType_AICMDPortMDP
+    AICMDPortType_AICMDPortTH
   };
   return values;
 }
@@ -315,14 +287,14 @@ inline const char * const *EnumNamesAICMDPortType() {
   static const char * const names[4] = {
     "AICMDPortUserIO",
     "AICMDPortP2P",
-    "AICMDPortMDP",
+    "AICMDPortTH",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAICMDPortType(AICMDPortType e) {
-  if (flatbuffers::IsOutRange(e, AICMDPortType_AICMDPortUserIO, AICMDPortType_AICMDPortMDP)) return "";
+  if (flatbuffers::IsOutRange(e, AICMDPortType_AICMDPortUserIO, AICMDPortType_AICMDPortTH)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAICMDPortType()[index];
 }
@@ -477,9 +449,6 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(2) AICMDPortEntry FLATBUFFERS_FINAL_CLASS {
   int8_t padding0__;
 
  public:
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDPortEntryTypeTable();
-  }
   AICMDPortEntry()
       : portId_(0),
         portType_(0),
@@ -514,9 +483,6 @@ struct AICMDSemaphoreOpT : public flatbuffers::NativeTable {
 struct AICMDSemaphoreOp FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDSemaphoreOpT NativeTableType;
   typedef AICMDSemaphoreOpBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDSemaphoreOpTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SEMNUM = 4,
     VT_SEMVALUE = 6,
@@ -622,9 +588,6 @@ struct AICMDDoorbellOpT : public flatbuffers::NativeTable {
 struct AICMDDoorbellOp FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDDoorbellOpT NativeTableType;
   typedef AICMDDoorbellOpBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDDoorbellOpTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_OFFSET = 4,
     VT_DATA = 6,
@@ -712,6 +675,9 @@ struct AICMDDMARequestT : public flatbuffers::NativeTable {
   uint8_t inOut = 0;
   uint16_t portId = 0;
   uint32_t transactionId = 0;
+  uint32_t predicateId = 0;
+  uint8_t predicateUpdate = 0;
+  uint32_t dmaSizeId = 0;
   AICMDDMARequestT() = default;
   AICMDDMARequestT(const AICMDDMARequestT &o);
   AICMDDMARequestT(AICMDDMARequestT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -721,9 +687,6 @@ struct AICMDDMARequestT : public flatbuffers::NativeTable {
 struct AICMDDMARequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDDMARequestT NativeTableType;
   typedef AICMDDMARequestBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDDMARequestTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_SEMAPHOREOPS = 4,
     VT_DOORBELLOPS = 6,
@@ -735,7 +698,10 @@ struct AICMDDMARequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_DEVADDRSPACE = 18,
     VT_INOUT = 20,
     VT_PORTID = 22,
-    VT_TRANSACTIONID = 24
+    VT_TRANSACTIONID = 24,
+    VT_PREDICATEID = 26,
+    VT_PREDICATEUPDATE = 28,
+    VT_DMASIZEID = 30
   };
   const flatbuffers::Vector<flatbuffers::Offset<AicMetadataFlat::AICMDSemaphoreOp>> *semaphoreOps() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<AicMetadataFlat::AICMDSemaphoreOp>> *>(VT_SEMAPHOREOPS);
@@ -770,6 +736,15 @@ struct AICMDDMARequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   uint32_t transactionId() const {
     return GetField<uint32_t>(VT_TRANSACTIONID, 0);
   }
+  uint32_t predicateId() const {
+    return GetField<uint32_t>(VT_PREDICATEID, 0);
+  }
+  uint8_t predicateUpdate() const {
+    return GetField<uint8_t>(VT_PREDICATEUPDATE, 0);
+  }
+  uint32_t dmaSizeId() const {
+    return GetField<uint32_t>(VT_DMASIZEID, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_SEMAPHOREOPS) &&
@@ -787,6 +762,9 @@ struct AICMDDMARequest FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_INOUT, 1) &&
            VerifyField<uint16_t>(verifier, VT_PORTID, 2) &&
            VerifyField<uint32_t>(verifier, VT_TRANSACTIONID, 4) &&
+           VerifyField<uint32_t>(verifier, VT_PREDICATEID, 4) &&
+           VerifyField<uint8_t>(verifier, VT_PREDICATEUPDATE, 1) &&
+           VerifyField<uint32_t>(verifier, VT_DMASIZEID, 4) &&
            verifier.EndTable();
   }
   AICMDDMARequestT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -831,6 +809,15 @@ struct AICMDDMARequestBuilder {
   void add_transactionId(uint32_t transactionId) {
     fbb_.AddElement<uint32_t>(AICMDDMARequest::VT_TRANSACTIONID, transactionId, 0);
   }
+  void add_predicateId(uint32_t predicateId) {
+    fbb_.AddElement<uint32_t>(AICMDDMARequest::VT_PREDICATEID, predicateId, 0);
+  }
+  void add_predicateUpdate(uint8_t predicateUpdate) {
+    fbb_.AddElement<uint8_t>(AICMDDMARequest::VT_PREDICATEUPDATE, predicateUpdate, 0);
+  }
+  void add_dmaSizeId(uint32_t dmaSizeId) {
+    fbb_.AddElement<uint32_t>(AICMDDMARequest::VT_DMASIZEID, dmaSizeId, 0);
+  }
   explicit AICMDDMARequestBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -854,10 +841,15 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequest(
     uint8_t devAddrSpace = 0,
     uint8_t inOut = 0,
     uint16_t portId = 0,
-    uint32_t transactionId = 0) {
+    uint32_t transactionId = 0,
+    uint32_t predicateId = 0,
+    uint8_t predicateUpdate = 0,
+    uint32_t dmaSizeId = 0) {
   AICMDDMARequestBuilder builder_(_fbb);
   builder_.add_devOffset(devOffset);
   builder_.add_hostOffset(hostOffset);
+  builder_.add_dmaSizeId(dmaSizeId);
+  builder_.add_predicateId(predicateId);
   builder_.add_transactionId(transactionId);
   builder_.add_size(size);
   builder_.add_doorbellOps(doorbellOps);
@@ -865,6 +857,7 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequest(
   builder_.add_portId(portId);
   builder_.add_mcId(mcId);
   builder_.add_num(num);
+  builder_.add_predicateUpdate(predicateUpdate);
   builder_.add_inOut(inOut);
   builder_.add_devAddrSpace(devAddrSpace);
   return builder_.Finish();
@@ -882,7 +875,10 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequestDirect(
     uint8_t devAddrSpace = 0,
     uint8_t inOut = 0,
     uint16_t portId = 0,
-    uint32_t transactionId = 0) {
+    uint32_t transactionId = 0,
+    uint32_t predicateId = 0,
+    uint8_t predicateUpdate = 0,
+    uint32_t dmaSizeId = 0) {
   auto semaphoreOps__ = semaphoreOps ? _fbb.CreateVector<flatbuffers::Offset<AicMetadataFlat::AICMDSemaphoreOp>>(*semaphoreOps) : 0;
   auto doorbellOps__ = doorbellOps ? _fbb.CreateVector<flatbuffers::Offset<AicMetadataFlat::AICMDDoorbellOp>>(*doorbellOps) : 0;
   return AicMetadataFlat::CreateAICMDDMARequest(
@@ -897,7 +893,10 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequestDirect(
       devAddrSpace,
       inOut,
       portId,
-      transactionId);
+      transactionId,
+      predicateId,
+      predicateUpdate,
+      dmaSizeId);
 }
 
 flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequest(flatbuffers::FlatBufferBuilder &_fbb, const AICMDDMARequestT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -914,9 +913,6 @@ struct AICMDNSPMulticastEntryT : public flatbuffers::NativeTable {
 struct AICMDNSPMulticastEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDNSPMulticastEntryT NativeTableType;
   typedef AICMDNSPMulticastEntryBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDNSPMulticastEntryTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_BASEADDROFFSET = 4,
     VT_MASK = 6,
@@ -1013,9 +1009,6 @@ struct AICMDNSPMulticastEntryTableT : public flatbuffers::NativeTable {
 struct AICMDNSPMulticastEntryTable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDNSPMulticastEntryTableT NativeTableType;
   typedef AICMDNSPMulticastEntryTableBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDNSPMulticastEntryTableTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MULTICASTENTRIES = 4
   };
@@ -1075,17 +1068,16 @@ struct AICMDHostMulticastEntryT : public flatbuffers::NativeTable {
   typedef AICMDHostMulticastEntry TableType;
   uint32_t mask = 0;
   uint32_t size = 0;
+  uint32_t exposedSize = 0;
 };
 
 struct AICMDHostMulticastEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDHostMulticastEntryT NativeTableType;
   typedef AICMDHostMulticastEntryBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDHostMulticastEntryTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MASK = 4,
-    VT_SIZE = 6
+    VT_SIZE = 6,
+    VT_EXPOSEDSIZE = 8
   };
   uint32_t mask() const {
     return GetField<uint32_t>(VT_MASK, 0);
@@ -1093,10 +1085,14 @@ struct AICMDHostMulticastEntry FLATBUFFERS_FINAL_CLASS : private flatbuffers::Ta
   uint32_t size() const {
     return GetField<uint32_t>(VT_SIZE, 0);
   }
+  uint32_t exposedSize() const {
+    return GetField<uint32_t>(VT_EXPOSEDSIZE, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_MASK, 4) &&
            VerifyField<uint32_t>(verifier, VT_SIZE, 4) &&
+           VerifyField<uint32_t>(verifier, VT_EXPOSEDSIZE, 4) &&
            verifier.EndTable();
   }
   AICMDHostMulticastEntryT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1114,6 +1110,9 @@ struct AICMDHostMulticastEntryBuilder {
   void add_size(uint32_t size) {
     fbb_.AddElement<uint32_t>(AICMDHostMulticastEntry::VT_SIZE, size, 0);
   }
+  void add_exposedSize(uint32_t exposedSize) {
+    fbb_.AddElement<uint32_t>(AICMDHostMulticastEntry::VT_EXPOSEDSIZE, exposedSize, 0);
+  }
   explicit AICMDHostMulticastEntryBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1128,8 +1127,10 @@ struct AICMDHostMulticastEntryBuilder {
 inline flatbuffers::Offset<AICMDHostMulticastEntry> CreateAICMDHostMulticastEntry(
     flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t mask = 0,
-    uint32_t size = 0) {
+    uint32_t size = 0,
+    uint32_t exposedSize = 0) {
   AICMDHostMulticastEntryBuilder builder_(_fbb);
+  builder_.add_exposedSize(exposedSize);
   builder_.add_size(size);
   builder_.add_mask(mask);
   return builder_.Finish();
@@ -1149,9 +1150,6 @@ struct AICMDHostMulticastEntryTableT : public flatbuffers::NativeTable {
 struct AICMDHostMulticastEntryTable FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDHostMulticastEntryTableT NativeTableType;
   typedef AICMDHostMulticastEntryTableBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDHostMulticastEntryTableTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_MULTICASTENTRIES = 4
   };
@@ -1216,9 +1214,6 @@ struct AICMDThreadDescriptorT : public flatbuffers::NativeTable {
 struct AICMDThreadDescriptor FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDThreadDescriptorT NativeTableType;
   typedef AICMDThreadDescriptorBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDThreadDescriptorTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ENTRYPOINT = 4,
     VT_TYPEMASK = 6
@@ -1283,9 +1278,6 @@ struct AICMDConstantMappingT : public flatbuffers::NativeTable {
 struct AICMDConstantMapping FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef AICMDConstantMappingT NativeTableType;
   typedef AICMDConstantMappingBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return AICMDConstantMappingTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_CONSTANTDATABASEOFFSET = 4,
     VT_COREMASK = 6,
@@ -1358,9 +1350,6 @@ struct QNNConfigDefT : public flatbuffers::NativeTable {
 struct QNNConfigDef FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef QNNConfigDefT NativeTableType;
   typedef QNNConfigDefBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return QNNConfigDefTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_CONSTANTS = 4
   };
@@ -1413,9 +1402,6 @@ struct networkHeapBehaviorDefT : public flatbuffers::NativeTable {
 struct networkHeapBehaviorDef FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef networkHeapBehaviorDefT NativeTableType;
   typedef networkHeapBehaviorDefBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return networkHeapBehaviorDefTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ONNETWORKDEACTIVATE = 4
   };
@@ -1470,9 +1456,6 @@ struct NonZeroRegionT : public flatbuffers::NativeTable {
 struct NonZeroRegion FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef NonZeroRegionT NativeTableType;
   typedef NonZeroRegionBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return NonZeroRegionTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_START = 4,
     VT_END = 6,
@@ -1579,6 +1562,10 @@ struct MetadataT : public flatbuffers::NativeTable {
   std::vector<std::unique_ptr<AicMetadataFlat::NonZeroRegionT>> L2TCMInitStateNonZeroRegions{};
   uint8_t dynamicSharedDDRSupported = 0;
   std::unique_ptr<AicMetadataFlat::networkHeapBehaviorDefT> networkHeapBehavior{};
+  uint64_t secureStaticSharedDDRSize = 0;
+  uint8_t secureStaticSharedDDRECCEnabled = 0;
+  uint64_t secureDynamicSharedDDRSize = 0;
+  uint8_t secureDynamicSharedDDRECCEnabled = 0;
   MetadataT() = default;
   MetadataT(const MetadataT &o);
   MetadataT(MetadataT&&) FLATBUFFERS_NOEXCEPT = default;
@@ -1588,9 +1575,6 @@ struct MetadataT : public flatbuffers::NativeTable {
 struct Metadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef MetadataT NativeTableType;
   typedef MetadataBuilder Builder;
-  static const flatbuffers::TypeTable *MiniReflectTypeTable() {
-    return MetadataTypeTable();
-  }
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_VERSIONMAJOR = 4,
     VT_VERSIONMINOR = 6,
@@ -1631,7 +1615,11 @@ struct Metadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_EXECCONTEXT = 76,
     VT_L2TCMINITSTATENONZEROREGIONS = 78,
     VT_DYNAMICSHAREDDDRSUPPORTED = 80,
-    VT_NETWORKHEAPBEHAVIOR = 82
+    VT_NETWORKHEAPBEHAVIOR = 82,
+    VT_SECURESTATICSHAREDDDRSIZE = 84,
+    VT_SECURESTATICSHAREDDDRECCENABLED = 86,
+    VT_SECUREDYNAMICSHAREDDDRSIZE = 88,
+    VT_SECUREDYNAMICSHAREDDDRECCENABLED = 90
   };
   uint16_t versionMajor() const {
     return GetField<uint16_t>(VT_VERSIONMAJOR, 0);
@@ -1753,6 +1741,18 @@ struct Metadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const AicMetadataFlat::networkHeapBehaviorDef *networkHeapBehavior() const {
     return GetPointer<const AicMetadataFlat::networkHeapBehaviorDef *>(VT_NETWORKHEAPBEHAVIOR);
   }
+  uint64_t secureStaticSharedDDRSize() const {
+    return GetField<uint64_t>(VT_SECURESTATICSHAREDDDRSIZE, 0);
+  }
+  uint8_t secureStaticSharedDDRECCEnabled() const {
+    return GetField<uint8_t>(VT_SECURESTATICSHAREDDDRECCENABLED, 0);
+  }
+  uint64_t secureDynamicSharedDDRSize() const {
+    return GetField<uint64_t>(VT_SECUREDYNAMICSHAREDDDRSIZE, 0);
+  }
+  uint8_t secureDynamicSharedDDRECCEnabled() const {
+    return GetField<uint8_t>(VT_SECUREDYNAMICSHAREDDDRECCENABLED, 0);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint16_t>(verifier, VT_VERSIONMAJOR, 2) &&
@@ -1815,6 +1815,10 @@ struct Metadata FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_DYNAMICSHAREDDDRSUPPORTED, 1) &&
            VerifyOffset(verifier, VT_NETWORKHEAPBEHAVIOR) &&
            verifier.VerifyTable(networkHeapBehavior()) &&
+           VerifyField<uint64_t>(verifier, VT_SECURESTATICSHAREDDDRSIZE, 8) &&
+           VerifyField<uint8_t>(verifier, VT_SECURESTATICSHAREDDDRECCENABLED, 1) &&
+           VerifyField<uint64_t>(verifier, VT_SECUREDYNAMICSHAREDDDRSIZE, 8) &&
+           VerifyField<uint8_t>(verifier, VT_SECUREDYNAMICSHAREDDDRECCENABLED, 1) &&
            verifier.EndTable();
   }
   MetadataT *UnPack(const flatbuffers::resolver_function_t *_resolver = nullptr) const;
@@ -1946,6 +1950,18 @@ struct MetadataBuilder {
   void add_networkHeapBehavior(flatbuffers::Offset<AicMetadataFlat::networkHeapBehaviorDef> networkHeapBehavior) {
     fbb_.AddOffset(Metadata::VT_NETWORKHEAPBEHAVIOR, networkHeapBehavior);
   }
+  void add_secureStaticSharedDDRSize(uint64_t secureStaticSharedDDRSize) {
+    fbb_.AddElement<uint64_t>(Metadata::VT_SECURESTATICSHAREDDDRSIZE, secureStaticSharedDDRSize, 0);
+  }
+  void add_secureStaticSharedDDRECCEnabled(uint8_t secureStaticSharedDDRECCEnabled) {
+    fbb_.AddElement<uint8_t>(Metadata::VT_SECURESTATICSHAREDDDRECCENABLED, secureStaticSharedDDRECCEnabled, 0);
+  }
+  void add_secureDynamicSharedDDRSize(uint64_t secureDynamicSharedDDRSize) {
+    fbb_.AddElement<uint64_t>(Metadata::VT_SECUREDYNAMICSHAREDDDRSIZE, secureDynamicSharedDDRSize, 0);
+  }
+  void add_secureDynamicSharedDDRECCEnabled(uint8_t secureDynamicSharedDDRECCEnabled) {
+    fbb_.AddElement<uint8_t>(Metadata::VT_SECUREDYNAMICSHAREDDDRECCENABLED, secureDynamicSharedDDRECCEnabled, 0);
+  }
   explicit MetadataBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1998,8 +2014,14 @@ inline flatbuffers::Offset<Metadata> CreateMetadata(
     flatbuffers::Offset<flatbuffers::Vector<uint8_t>> execContext = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<AicMetadataFlat::NonZeroRegion>>> L2TCMInitStateNonZeroRegions = 0,
     uint8_t dynamicSharedDDRSupported = 0,
-    flatbuffers::Offset<AicMetadataFlat::networkHeapBehaviorDef> networkHeapBehavior = 0) {
+    flatbuffers::Offset<AicMetadataFlat::networkHeapBehaviorDef> networkHeapBehavior = 0,
+    uint64_t secureStaticSharedDDRSize = 0,
+    uint8_t secureStaticSharedDDRECCEnabled = 0,
+    uint64_t secureDynamicSharedDDRSize = 0,
+    uint8_t secureDynamicSharedDDRECCEnabled = 0) {
   MetadataBuilder builder_(_fbb);
+  builder_.add_secureDynamicSharedDDRSize(secureDynamicSharedDDRSize);
+  builder_.add_secureStaticSharedDDRSize(secureStaticSharedDDRSize);
   builder_.add_raw_struct_version_length(raw_struct_version_length);
   builder_.add_networkHeapSize(networkHeapSize);
   builder_.add_exitDoorbellOffset(exitDoorbellOffset);
@@ -2030,6 +2052,8 @@ inline flatbuffers::Offset<Metadata> CreateMetadata(
   builder_.add_execContextMajorVersion(execContextMajorVersion);
   builder_.add_versionMinor(versionMinor);
   builder_.add_versionMajor(versionMajor);
+  builder_.add_secureDynamicSharedDDRECCEnabled(secureDynamicSharedDDRECCEnabled);
+  builder_.add_secureStaticSharedDDRECCEnabled(secureStaticSharedDDRECCEnabled);
   builder_.add_dynamicSharedDDRSupported(dynamicSharedDDRSupported);
   builder_.add_hasHmxFP(hasHmxFP);
   builder_.add_hasHvxFP(hasHvxFP);
@@ -2084,7 +2108,11 @@ inline flatbuffers::Offset<Metadata> CreateMetadataDirect(
     const std::vector<uint8_t> *execContext = nullptr,
     const std::vector<flatbuffers::Offset<AicMetadataFlat::NonZeroRegion>> *L2TCMInitStateNonZeroRegions = nullptr,
     uint8_t dynamicSharedDDRSupported = 0,
-    flatbuffers::Offset<AicMetadataFlat::networkHeapBehaviorDef> networkHeapBehavior = 0) {
+    flatbuffers::Offset<AicMetadataFlat::networkHeapBehaviorDef> networkHeapBehavior = 0,
+    uint64_t secureStaticSharedDDRSize = 0,
+    uint8_t secureStaticSharedDDRECCEnabled = 0,
+    uint64_t secureDynamicSharedDDRSize = 0,
+    uint8_t secureDynamicSharedDDRECCEnabled = 0) {
   auto networkName__ = networkName ? _fbb.CreateString(networkName) : 0;
   auto requiredFields__ = requiredFields ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*requiredFields) : 0;
   auto semaphoreInitState__ = semaphoreInitState ? _fbb.CreateVector<uint32_t>(*semaphoreInitState) : 0;
@@ -2137,7 +2165,11 @@ inline flatbuffers::Offset<Metadata> CreateMetadataDirect(
       execContext__,
       L2TCMInitStateNonZeroRegions__,
       dynamicSharedDDRSupported,
-      networkHeapBehavior);
+      networkHeapBehavior,
+      secureStaticSharedDDRSize,
+      secureStaticSharedDDRECCEnabled,
+      secureDynamicSharedDDRSize,
+      secureDynamicSharedDDRECCEnabled);
 }
 
 flatbuffers::Offset<Metadata> CreateMetadata(flatbuffers::FlatBufferBuilder &_fbb, const MetadataT *_o, const flatbuffers::rehasher_function_t *_rehasher = nullptr);
@@ -2227,7 +2259,10 @@ inline AICMDDMARequestT::AICMDDMARequestT(const AICMDDMARequestT &o)
         devAddrSpace(o.devAddrSpace),
         inOut(o.inOut),
         portId(o.portId),
-        transactionId(o.transactionId) {
+        transactionId(o.transactionId),
+        predicateId(o.predicateId),
+        predicateUpdate(o.predicateUpdate),
+        dmaSizeId(o.dmaSizeId) {
   semaphoreOps.reserve(o.semaphoreOps.size());
   for (const auto &semaphoreOps_ : o.semaphoreOps) { semaphoreOps.emplace_back((semaphoreOps_) ? new AicMetadataFlat::AICMDSemaphoreOpT(*semaphoreOps_) : nullptr); }
   doorbellOps.reserve(o.doorbellOps.size());
@@ -2246,6 +2281,9 @@ inline AICMDDMARequestT &AICMDDMARequestT::operator=(AICMDDMARequestT o) FLATBUF
   std::swap(inOut, o.inOut);
   std::swap(portId, o.portId);
   std::swap(transactionId, o.transactionId);
+  std::swap(predicateId, o.predicateId);
+  std::swap(predicateUpdate, o.predicateUpdate);
+  std::swap(dmaSizeId, o.dmaSizeId);
   return *this;
 }
 
@@ -2258,8 +2296,8 @@ inline AICMDDMARequestT *AICMDDMARequest::UnPack(const flatbuffers::resolver_fun
 inline void AICMDDMARequest::UnPackTo(AICMDDMARequestT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = semaphoreOps(); if (_e) { _o->semaphoreOps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->semaphoreOps[_i]) { _e->Get(_i)->UnPackTo(_o->semaphoreOps[_i].get(), _resolver); } else { _o->semaphoreOps[_i] = std::unique_ptr<AicMetadataFlat::AICMDSemaphoreOpT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->semaphoreOps.resize(0); } }
-  { auto _e = doorbellOps(); if (_e) { _o->doorbellOps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->doorbellOps[_i]) { _e->Get(_i)->UnPackTo(_o->doorbellOps[_i].get(), _resolver); } else { _o->doorbellOps[_i] = std::unique_ptr<AicMetadataFlat::AICMDDoorbellOpT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->doorbellOps.resize(0); } }
+  { auto _e = semaphoreOps(); if (_e) { _o->semaphoreOps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->semaphoreOps[_i] = std::unique_ptr<AicMetadataFlat::AICMDSemaphoreOpT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = doorbellOps(); if (_e) { _o->doorbellOps.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->doorbellOps[_i] = std::unique_ptr<AicMetadataFlat::AICMDDoorbellOpT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = hostOffset(); _o->hostOffset = _e; }
   { auto _e = devOffset(); _o->devOffset = _e; }
   { auto _e = size(); _o->size = _e; }
@@ -2269,6 +2307,9 @@ inline void AICMDDMARequest::UnPackTo(AICMDDMARequestT *_o, const flatbuffers::r
   { auto _e = inOut(); _o->inOut = _e; }
   { auto _e = portId(); _o->portId = _e; }
   { auto _e = transactionId(); _o->transactionId = _e; }
+  { auto _e = predicateId(); _o->predicateId = _e; }
+  { auto _e = predicateUpdate(); _o->predicateUpdate = _e; }
+  { auto _e = dmaSizeId(); _o->dmaSizeId = _e; }
 }
 
 inline flatbuffers::Offset<AICMDDMARequest> AICMDDMARequest::Pack(flatbuffers::FlatBufferBuilder &_fbb, const AICMDDMARequestT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2290,6 +2331,9 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequest(flatbuffers::F
   auto _inOut = _o->inOut;
   auto _portId = _o->portId;
   auto _transactionId = _o->transactionId;
+  auto _predicateId = _o->predicateId;
+  auto _predicateUpdate = _o->predicateUpdate;
+  auto _dmaSizeId = _o->dmaSizeId;
   return AicMetadataFlat::CreateAICMDDMARequest(
       _fbb,
       _semaphoreOps,
@@ -2302,7 +2346,10 @@ inline flatbuffers::Offset<AICMDDMARequest> CreateAICMDDMARequest(flatbuffers::F
       _devAddrSpace,
       _inOut,
       _portId,
-      _transactionId);
+      _transactionId,
+      _predicateId,
+      _predicateUpdate,
+      _dmaSizeId);
 }
 
 inline AICMDNSPMulticastEntryT *AICMDNSPMulticastEntry::UnPack(const flatbuffers::resolver_function_t *_resolver) const {
@@ -2362,7 +2409,7 @@ inline AICMDNSPMulticastEntryTableT *AICMDNSPMulticastEntryTable::UnPack(const f
 inline void AICMDNSPMulticastEntryTable::UnPackTo(AICMDNSPMulticastEntryTableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = multicastEntries(); if (_e) { _o->multicastEntries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->multicastEntries[_i]) { _e->Get(_i)->UnPackTo(_o->multicastEntries[_i].get(), _resolver); } else { _o->multicastEntries[_i] = std::unique_ptr<AicMetadataFlat::AICMDNSPMulticastEntryT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->multicastEntries.resize(0); } }
+  { auto _e = multicastEntries(); if (_e) { _o->multicastEntries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->multicastEntries[_i] = std::unique_ptr<AicMetadataFlat::AICMDNSPMulticastEntryT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<AICMDNSPMulticastEntryTable> AICMDNSPMulticastEntryTable::Pack(flatbuffers::FlatBufferBuilder &_fbb, const AICMDNSPMulticastEntryTableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2390,6 +2437,7 @@ inline void AICMDHostMulticastEntry::UnPackTo(AICMDHostMulticastEntryT *_o, cons
   (void)_resolver;
   { auto _e = mask(); _o->mask = _e; }
   { auto _e = size(); _o->size = _e; }
+  { auto _e = exposedSize(); _o->exposedSize = _e; }
 }
 
 inline flatbuffers::Offset<AICMDHostMulticastEntry> AICMDHostMulticastEntry::Pack(flatbuffers::FlatBufferBuilder &_fbb, const AICMDHostMulticastEntryT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2402,10 +2450,12 @@ inline flatbuffers::Offset<AICMDHostMulticastEntry> CreateAICMDHostMulticastEntr
   struct _VectorArgs { flatbuffers::FlatBufferBuilder *__fbb; const AICMDHostMulticastEntryT* __o; const flatbuffers::rehasher_function_t *__rehasher; } _va = { &_fbb, _o, _rehasher}; (void)_va;
   auto _mask = _o->mask;
   auto _size = _o->size;
+  auto _exposedSize = _o->exposedSize;
   return AicMetadataFlat::CreateAICMDHostMulticastEntry(
       _fbb,
       _mask,
-      _size);
+      _size,
+      _exposedSize);
 }
 
 inline AICMDHostMulticastEntryTableT::AICMDHostMulticastEntryTableT(const AICMDHostMulticastEntryTableT &o) {
@@ -2427,7 +2477,7 @@ inline AICMDHostMulticastEntryTableT *AICMDHostMulticastEntryTable::UnPack(const
 inline void AICMDHostMulticastEntryTable::UnPackTo(AICMDHostMulticastEntryTableT *_o, const flatbuffers::resolver_function_t *_resolver) const {
   (void)_o;
   (void)_resolver;
-  { auto _e = multicastEntries(); if (_e) { _o->multicastEntries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->multicastEntries[_i]) { _e->Get(_i)->UnPackTo(_o->multicastEntries[_i].get(), _resolver); } else { _o->multicastEntries[_i] = std::unique_ptr<AicMetadataFlat::AICMDHostMulticastEntryT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->multicastEntries.resize(0); } }
+  { auto _e = multicastEntries(); if (_e) { _o->multicastEntries.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->multicastEntries[_i] = std::unique_ptr<AicMetadataFlat::AICMDHostMulticastEntryT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<AICMDHostMulticastEntryTable> AICMDHostMulticastEntryTable::Pack(flatbuffers::FlatBufferBuilder &_fbb, const AICMDHostMulticastEntryTableT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2624,7 +2674,11 @@ inline MetadataT::MetadataT(const MetadataT &o)
         portTable(o.portTable),
         execContext(o.execContext),
         dynamicSharedDDRSupported(o.dynamicSharedDDRSupported),
-        networkHeapBehavior((o.networkHeapBehavior) ? new AicMetadataFlat::networkHeapBehaviorDefT(*o.networkHeapBehavior) : nullptr) {
+        networkHeapBehavior((o.networkHeapBehavior) ? new AicMetadataFlat::networkHeapBehaviorDefT(*o.networkHeapBehavior) : nullptr),
+        secureStaticSharedDDRSize(o.secureStaticSharedDDRSize),
+        secureStaticSharedDDRECCEnabled(o.secureStaticSharedDDRECCEnabled),
+        secureDynamicSharedDDRSize(o.secureDynamicSharedDDRSize),
+        secureDynamicSharedDDRECCEnabled(o.secureDynamicSharedDDRECCEnabled) {
   dmaRequests.reserve(o.dmaRequests.size());
   for (const auto &dmaRequests_ : o.dmaRequests) { dmaRequests.emplace_back((dmaRequests_) ? new AicMetadataFlat::AICMDDMARequestT(*dmaRequests_) : nullptr); }
   nspMulticastTables.reserve(o.nspMulticastTables.size());
@@ -2678,6 +2732,10 @@ inline MetadataT &MetadataT::operator=(MetadataT o) FLATBUFFERS_NOEXCEPT {
   std::swap(L2TCMInitStateNonZeroRegions, o.L2TCMInitStateNonZeroRegions);
   std::swap(dynamicSharedDDRSupported, o.dynamicSharedDDRSupported);
   std::swap(networkHeapBehavior, o.networkHeapBehavior);
+  std::swap(secureStaticSharedDDRSize, o.secureStaticSharedDDRSize);
+  std::swap(secureStaticSharedDDRECCEnabled, o.secureStaticSharedDDRECCEnabled);
+  std::swap(secureDynamicSharedDDRSize, o.secureDynamicSharedDDRSize);
+  std::swap(secureDynamicSharedDDRECCEnabled, o.secureDynamicSharedDDRECCEnabled);
   return *this;
 }
 
@@ -2693,14 +2751,14 @@ inline void Metadata::UnPackTo(MetadataT *_o, const flatbuffers::resolver_functi
   { auto _e = versionMajor(); _o->versionMajor = _e; }
   { auto _e = versionMinor(); _o->versionMinor = _e; }
   { auto _e = networkName(); if (_e) _o->networkName = _e->str(); }
-  { auto _e = requiredFields(); if (_e) { _o->requiredFields.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->requiredFields[_i] = _e->Get(_i)->str(); } } else { _o->requiredFields.resize(0); } }
-  { auto _e = semaphoreInitState(); if (_e) { _o->semaphoreInitState.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->semaphoreInitState[_i] = _e->Get(_i); } } else { _o->semaphoreInitState.resize(0); } }
+  { auto _e = requiredFields(); if (_e) { _o->requiredFields.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->requiredFields[_i] = _e->Get(_i)->str(); } } }
+  { auto _e = semaphoreInitState(); if (_e) { _o->semaphoreInitState.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->semaphoreInitState[_i] = _e->Get(_i); } } }
   { auto _e = L2TCMInitState(); if (_e) { _o->L2TCMInitState.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->L2TCMInitState.begin()); } }
-  { auto _e = dmaRequests(); if (_e) { _o->dmaRequests.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->dmaRequests[_i]) { _e->Get(_i)->UnPackTo(_o->dmaRequests[_i].get(), _resolver); } else { _o->dmaRequests[_i] = std::unique_ptr<AicMetadataFlat::AICMDDMARequestT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->dmaRequests.resize(0); } }
-  { auto _e = nspMulticastTables(); if (_e) { _o->nspMulticastTables.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->nspMulticastTables[_i]) { _e->Get(_i)->UnPackTo(_o->nspMulticastTables[_i].get(), _resolver); } else { _o->nspMulticastTables[_i] = std::unique_ptr<AicMetadataFlat::AICMDNSPMulticastEntryTableT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->nspMulticastTables.resize(0); } }
-  { auto _e = hostMulticastTable(); if (_e) { if(_o->hostMulticastTable) { _e->UnPackTo(_o->hostMulticastTable.get(), _resolver); } else { _o->hostMulticastTable = std::unique_ptr<AicMetadataFlat::AICMDHostMulticastEntryTableT>(_e->UnPack(_resolver)); } } else if (_o->hostMulticastTable) { _o->hostMulticastTable.reset(); } }
-  { auto _e = threadDescriptors(); if (_e) { _o->threadDescriptors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->threadDescriptors[_i]) { _e->Get(_i)->UnPackTo(_o->threadDescriptors[_i].get(), _resolver); } else { _o->threadDescriptors[_i] = std::unique_ptr<AicMetadataFlat::AICMDThreadDescriptorT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->threadDescriptors.resize(0); } }
-  { auto _e = constantMappings(); if (_e) { _o->constantMappings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->constantMappings[_i]) { _e->Get(_i)->UnPackTo(_o->constantMappings[_i].get(), _resolver); } else { _o->constantMappings[_i] = std::unique_ptr<AicMetadataFlat::AICMDConstantMappingT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->constantMappings.resize(0); } }
+  { auto _e = dmaRequests(); if (_e) { _o->dmaRequests.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->dmaRequests[_i] = std::unique_ptr<AicMetadataFlat::AICMDDMARequestT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = nspMulticastTables(); if (_e) { _o->nspMulticastTables.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->nspMulticastTables[_i] = std::unique_ptr<AicMetadataFlat::AICMDNSPMulticastEntryTableT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = hostMulticastTable(); if (_e) _o->hostMulticastTable = std::unique_ptr<AicMetadataFlat::AICMDHostMulticastEntryTableT>(_e->UnPack(_resolver)); }
+  { auto _e = threadDescriptors(); if (_e) { _o->threadDescriptors.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->threadDescriptors[_i] = std::unique_ptr<AicMetadataFlat::AICMDThreadDescriptorT>(_e->Get(_i)->UnPack(_resolver)); } } }
+  { auto _e = constantMappings(); if (_e) { _o->constantMappings.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->constantMappings[_i] = std::unique_ptr<AicMetadataFlat::AICMDConstantMappingT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = staticSharedDDRSize(); _o->staticSharedDDRSize = _e; }
   { auto _e = dynamicSharedDDRSize(); _o->dynamicSharedDDRSize = _e; }
   { auto _e = staticConstantsSize(); _o->staticConstantsSize = _e; }
@@ -2724,12 +2782,16 @@ inline void Metadata::UnPackTo(MetadataT *_o, const flatbuffers::resolver_functi
   { auto _e = L2TCMSize(); _o->L2TCMSize = _e; }
   { auto _e = networkHeapSize(); _o->networkHeapSize = _e; }
   { auto _e = raw_struct_version_length(); _o->raw_struct_version_length = _e; }
-  { auto _e = QNNConfig(); if (_e) { if(_o->QNNConfig) { _e->UnPackTo(_o->QNNConfig.get(), _resolver); } else { _o->QNNConfig = std::unique_ptr<AicMetadataFlat::QNNConfigDefT>(_e->UnPack(_resolver)); } } else if (_o->QNNConfig) { _o->QNNConfig.reset(); } }
-  { auto _e = portTable(); if (_e) { _o->portTable.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->portTable[_i] = *_e->Get(_i); } } else { _o->portTable.resize(0); } }
+  { auto _e = QNNConfig(); if (_e) _o->QNNConfig = std::unique_ptr<AicMetadataFlat::QNNConfigDefT>(_e->UnPack(_resolver)); }
+  { auto _e = portTable(); if (_e) { _o->portTable.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->portTable[_i] = *_e->Get(_i); } } }
   { auto _e = execContext(); if (_e) { _o->execContext.resize(_e->size()); std::copy(_e->begin(), _e->end(), _o->execContext.begin()); } }
-  { auto _e = L2TCMInitStateNonZeroRegions(); if (_e) { _o->L2TCMInitStateNonZeroRegions.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->L2TCMInitStateNonZeroRegions[_i]) { _e->Get(_i)->UnPackTo(_o->L2TCMInitStateNonZeroRegions[_i].get(), _resolver); } else { _o->L2TCMInitStateNonZeroRegions[_i] = std::unique_ptr<AicMetadataFlat::NonZeroRegionT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->L2TCMInitStateNonZeroRegions.resize(0); } }
+  { auto _e = L2TCMInitStateNonZeroRegions(); if (_e) { _o->L2TCMInitStateNonZeroRegions.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->L2TCMInitStateNonZeroRegions[_i] = std::unique_ptr<AicMetadataFlat::NonZeroRegionT>(_e->Get(_i)->UnPack(_resolver)); } } }
   { auto _e = dynamicSharedDDRSupported(); _o->dynamicSharedDDRSupported = _e; }
-  { auto _e = networkHeapBehavior(); if (_e) { if(_o->networkHeapBehavior) { _e->UnPackTo(_o->networkHeapBehavior.get(), _resolver); } else { _o->networkHeapBehavior = std::unique_ptr<AicMetadataFlat::networkHeapBehaviorDefT>(_e->UnPack(_resolver)); } } else if (_o->networkHeapBehavior) { _o->networkHeapBehavior.reset(); } }
+  { auto _e = networkHeapBehavior(); if (_e) _o->networkHeapBehavior = std::unique_ptr<AicMetadataFlat::networkHeapBehaviorDefT>(_e->UnPack(_resolver)); }
+  { auto _e = secureStaticSharedDDRSize(); _o->secureStaticSharedDDRSize = _e; }
+  { auto _e = secureStaticSharedDDRECCEnabled(); _o->secureStaticSharedDDRECCEnabled = _e; }
+  { auto _e = secureDynamicSharedDDRSize(); _o->secureDynamicSharedDDRSize = _e; }
+  { auto _e = secureDynamicSharedDDRECCEnabled(); _o->secureDynamicSharedDDRECCEnabled = _e; }
 }
 
 inline flatbuffers::Offset<Metadata> Metadata::Pack(flatbuffers::FlatBufferBuilder &_fbb, const MetadataT* _o, const flatbuffers::rehasher_function_t *_rehasher) {
@@ -2780,6 +2842,10 @@ inline flatbuffers::Offset<Metadata> CreateMetadata(flatbuffers::FlatBufferBuild
   auto _L2TCMInitStateNonZeroRegions = _o->L2TCMInitStateNonZeroRegions.size() ? _fbb.CreateVector<flatbuffers::Offset<AicMetadataFlat::NonZeroRegion>> (_o->L2TCMInitStateNonZeroRegions.size(), [](size_t i, _VectorArgs *__va) { return CreateNonZeroRegion(*__va->__fbb, __va->__o->L2TCMInitStateNonZeroRegions[i].get(), __va->__rehasher); }, &_va ) : 0;
   auto _dynamicSharedDDRSupported = _o->dynamicSharedDDRSupported;
   auto _networkHeapBehavior = _o->networkHeapBehavior ? CreatenetworkHeapBehaviorDef(_fbb, _o->networkHeapBehavior.get(), _rehasher) : 0;
+  auto _secureStaticSharedDDRSize = _o->secureStaticSharedDDRSize;
+  auto _secureStaticSharedDDRECCEnabled = _o->secureStaticSharedDDRECCEnabled;
+  auto _secureDynamicSharedDDRSize = _o->secureDynamicSharedDDRSize;
+  auto _secureDynamicSharedDDRECCEnabled = _o->secureDynamicSharedDDRECCEnabled;
   return AicMetadataFlat::CreateMetadata(
       _fbb,
       _versionMajor,
@@ -2821,593 +2887,11 @@ inline flatbuffers::Offset<Metadata> CreateMetadata(flatbuffers::FlatBufferBuild
       _execContext,
       _L2TCMInitStateNonZeroRegions,
       _dynamicSharedDDRSupported,
-      _networkHeapBehavior);
-}
-
-inline const flatbuffers::TypeTable *AICHardwareVersionTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_LONG, 0, 0 },
-    { flatbuffers::ET_LONG, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICHardwareVersionTypeTable
-  };
-  static const int64_t values[] = { 65536LL, 131072LL };
-  static const char * const names[] = {
-    "AIC_HW_VER_1_0",
-    "AIC_HW_VER_2_0"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDSemaphoreOpcodeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDSemaphoreOpcodeTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDSemaphoreCmdNOP",
-    "AICMDSemaphoreCmdINIT",
-    "AICMDSemaphoreCmdINC",
-    "AICMDSemaphoreCmdDEC",
-    "AICMDSemaphoreCmdWAITEQ",
-    "AICMDSemaphoreCmdWAITGE",
-    "AICMDSemaphoreCmdP"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 7, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDSemaphoreSyncTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDSemaphoreSyncTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDSemaphoreSyncPost",
-    "AICMDSemaphoreSyncPre"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDoorbellOpSizeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDDoorbellOpSizeTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDDoorballOpSize8",
-    "AICMDDoorballOpSize16",
-    "AICMDDoorballOpSize32"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDMAEntryAddrSpaceTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDDMAEntryAddrSpaceTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDDMAAddrSpaceMC",
-    "AICMDDMAAddrSpaceDDR",
-    "AICMDDMAAddrSpaceDDRDynamicShared"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDMADirectionTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDDMADirectionTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDDMAIn",
-    "AICMDDMAOut"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDPortTypeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDPortTypeTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDPortUserIO",
-    "AICMDPortP2P",
-    "AICMDPortMDP"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 3, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDMAReservedTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UINT, 0, 0 },
-    { flatbuffers::ET_UINT, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDDMAReservedTypeTable
-  };
-  static const int64_t values[] = { 65535, 4294967295 };
-  static const char * const names[] = {
-    "AICMDDMABufNumNone",
-    "AICMDDMATransactionIdNone"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDMulticastEntryAddrSpaceTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDMulticastEntryAddrSpaceTypeTable
-  };
-  static const char * const names[] = {
-    "AICMDAddrSpaceL2TCM",
-    "AICMDAddrSpaceVTCM"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDThreadTypeTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDThreadTypeTypeTable
-  };
-  static const int64_t values[] = { 1, 2 };
-  static const char * const names[] = {
-    "AICMDThreadHMX",
-    "AICMDThreadHVX"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *cacheableConstantsTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::cacheableConstantsTypeTable
-  };
-  static const int64_t values[] = { 1, 2 };
-  static const char * const names[] = {
-    "CACHE_DISABLED",
-    "CACHE_ENABLED"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *networkDeactivateActionTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::networkDeactivateActionTypeTable
-  };
-  static const int64_t values[] = { 1, 2 };
-  static const char * const names[] = {
-    "freeNetworkHeap",
-    "preserveNetworkHeap"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_ENUM, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDSemaphoreOpTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 }
-  };
-  static const char * const names[] = {
-    "semNum",
-    "semValue",
-    "semOp",
-    "preOrPost",
-    "inSyncFence",
-    "outSyncFence"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 6, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDoorbellOpTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 }
-  };
-  static const char * const names[] = {
-    "offset",
-    "data",
-    "mcId",
-    "size"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 4, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDPortEntryTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDPortTypeTypeTable
-  };
-  static const int64_t values[] = { 0, 2, 4 };
-  static const char * const names[] = {
-    "portId",
-    "portType"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_STRUCT, 2, type_codes, type_refs, nullptr, values, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDDMARequestTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_SEQUENCE, 1, 0 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDSemaphoreOpTypeTable,
-    AicMetadataFlat::AICMDDoorbellOpTypeTable
-  };
-  static const char * const names[] = {
-    "semaphoreOps",
-    "doorbellOps",
-    "hostOffset",
-    "devOffset",
-    "size",
-    "num",
-    "mcId",
-    "devAddrSpace",
-    "inOut",
-    "portId",
-    "transactionId"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 11, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDNSPMulticastEntryTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 }
-  };
-  static const char * const names[] = {
-    "baseAddrOffset",
-    "mask",
-    "size",
-    "addrSpace",
-    "dynamic"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 5, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDNSPMulticastEntryTableTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_SEQUENCE, 1, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDNSPMulticastEntryTypeTable
-  };
-  static const char * const names[] = {
-    "multicastEntries"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDHostMulticastEntryTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 }
-  };
-  static const char * const names[] = {
-    "mask",
-    "size"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 2, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDHostMulticastEntryTableTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_SEQUENCE, 1, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDHostMulticastEntryTypeTable
-  };
-  static const char * const names[] = {
-    "multicastEntries"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDThreadDescriptorTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 }
-  };
-  static const char * const names[] = {
-    "entryPoint",
-    "typeMask"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 2, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *AICMDConstantMappingTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 }
-  };
-  static const char * const names[] = {
-    "constantDataBaseOffset",
-    "coreMask",
-    "size"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 3, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *QNNConfigDefTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::cacheableConstantsTypeTable
-  };
-  static const char * const names[] = {
-    "Constants"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *networkHeapBehaviorDefTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_CHAR, 0, 0 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::networkDeactivateActionTypeTable
-  };
-  static const char * const names[] = {
-    "onNetworkDeactivate"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 1, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *NonZeroRegionTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 }
-  };
-  static const char * const names[] = {
-    "start",
-    "end",
-    "size"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 3, type_codes, nullptr, nullptr, nullptr, names
-  };
-  return &tt;
-}
-
-inline const flatbuffers::TypeTable *MetadataTypeTable() {
-  static const flatbuffers::TypeCode type_codes[] = {
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_STRING, 0, -1 },
-    { flatbuffers::ET_STRING, 1, -1 },
-    { flatbuffers::ET_UINT, 1, -1 },
-    { flatbuffers::ET_UCHAR, 1, -1 },
-    { flatbuffers::ET_SEQUENCE, 1, 0 },
-    { flatbuffers::ET_SEQUENCE, 1, 1 },
-    { flatbuffers::ET_SEQUENCE, 0, 2 },
-    { flatbuffers::ET_SEQUENCE, 1, 3 },
-    { flatbuffers::ET_SEQUENCE, 1, 4 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_USHORT, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_UINT, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_ULONG, 0, -1 },
-    { flatbuffers::ET_SEQUENCE, 0, 5 },
-    { flatbuffers::ET_SEQUENCE, 1, 6 },
-    { flatbuffers::ET_UCHAR, 1, -1 },
-    { flatbuffers::ET_SEQUENCE, 1, 7 },
-    { flatbuffers::ET_UCHAR, 0, -1 },
-    { flatbuffers::ET_SEQUENCE, 0, 8 }
-  };
-  static const flatbuffers::TypeFunction type_refs[] = {
-    AicMetadataFlat::AICMDDMARequestTypeTable,
-    AicMetadataFlat::AICMDNSPMulticastEntryTableTypeTable,
-    AicMetadataFlat::AICMDHostMulticastEntryTableTypeTable,
-    AicMetadataFlat::AICMDThreadDescriptorTypeTable,
-    AicMetadataFlat::AICMDConstantMappingTypeTable,
-    AicMetadataFlat::QNNConfigDefTypeTable,
-    AicMetadataFlat::AICMDPortEntryTypeTable,
-    AicMetadataFlat::NonZeroRegionTypeTable,
-    AicMetadataFlat::networkHeapBehaviorDefTypeTable
-  };
-  static const char * const names[] = {
-    "versionMajor",
-    "versionMinor",
-    "networkName",
-    "requiredFields",
-    "semaphoreInitState",
-    "L2TCMInitState",
-    "dmaRequests",
-    "nspMulticastTables",
-    "hostMulticastTable",
-    "threadDescriptors",
-    "constantMappings",
-    "staticSharedDDRSize",
-    "dynamicSharedDDRSize",
-    "staticConstantsSize",
-    "dynamicConstantsSize",
-    "exitDoorbellOffset",
-    "l2CachedDDRSize",
-    "L2TCMInitSize",
-    "execContextMajorVersion",
-    "numNSPs",
-    "numSemaphores",
-    "hwVersionMajor",
-    "hwVersionMinor",
-    "staticSharedDDRECCEnabled",
-    "dynamicSharedDDRECCEnabled",
-    "staticConstantsECCEnabled",
-    "dynamicConstantsECCEnabled",
-    "singleVTCMPage",
-    "hasHvxFP",
-    "hasHmxFP",
-    "VTCMSize",
-    "L2TCMSize",
-    "networkHeapSize",
-    "raw_struct_version_length",
-    "QNNConfig",
-    "portTable",
-    "execContext",
-    "L2TCMInitStateNonZeroRegions",
-    "dynamicSharedDDRSupported",
-    "networkHeapBehavior"
-  };
-  static const flatbuffers::TypeTable tt = {
-    flatbuffers::ST_TABLE, 40, type_codes, type_refs, nullptr, nullptr, names
-  };
-  return &tt;
+      _networkHeapBehavior,
+      _secureStaticSharedDDRSize,
+      _secureStaticSharedDDRECCEnabled,
+      _secureDynamicSharedDDRSize,
+      _secureDynamicSharedDDRECCEnabled);
 }
 
 inline const AicMetadataFlat::Metadata *GetMetadata(const void *buf) {

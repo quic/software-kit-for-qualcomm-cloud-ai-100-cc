@@ -16,6 +16,35 @@ enum dataType {
   Int8Ty = 8;     // 8-bit type (int8_t)
 }
 
+enum deviceStatsDataTags {
+  // ThreadCoreCycles
+  executionCycles = 0;
+  InputStallCount = 1;
+  OutputStallCount = 2;
+  activateCycles = 3;
+  ddrBwCycles = 4;
+
+  // PerCoreCycles
+  opPmuCounters = 5;
+
+  // Device offset time
+  deviceOffset = 6;
+
+  // BaseUCycles Counts
+  baseUCycleCounts = 7;
+
+  // OPCycles
+  opCycles = 8;
+
+  // PMUCycles
+  pmuCycles = 9;
+
+  // The value marked by this TLV indicates the "ID" of the specialization
+  // that generated the data in the stats buffer. It can be used to report
+  // device stats on a per-specialization basis.
+  specializationNum = 10;
+}
+
 enum networkDescLayout {
   FlatNXYD = 0;
   D32Untiled = 1;
@@ -88,6 +117,13 @@ message IOShapes {
   repeated tensorShape shapes = 1;
 }
 
+message StatsDataTLV {
+  deviceStatsDataTags tag = 1;
+  uint64 size = 2;   // size of data
+  uint64 offset = 3; // Offset from base of stats buffer
+  uint64 tag_info = 4; // Extra info for tag if any
+}
+
 message networkDescriptor {
   uint32 major_version = 1;
   uint32 minor_version = 2;
@@ -97,15 +133,13 @@ message networkDescriptor {
   repeated DMABuffer dma_buffers = 6;
   uint32 num_cores = 7;
   uint32 num_threads = 8;
-  uint32 num_hvx_threads = 9;
-  repeated uint32 thread_groups = 10;
-  uint32 thread_group_issue_count = 11;
-  Stats stats = 12;
-  repeated string thread_group_names = 13;
-  int32 batch_size = 14;
-  CRCInfo crc_info = 16;
-  repeated uint32 cluster_offsets = 17;
-  repeated IOShapes allowed_shapes = 18; // Listing all allowed combinations
+  Stats stats = 9;
+  int32 batch_size = 10;
+  repeated RuntimeLoadableConstant runtime_loadable_constants = 11;
+  CRCInfo crc_info = 12;
+  repeated uint32 cluster_offsets = 13;
+  repeated IOShapes allowed_shapes = 14; // Listing all allowed combinations
+  repeated string requiredFields = 15;
 }
 
 message IODescriptor
@@ -124,6 +158,13 @@ message IOBinding {
   repeated transform transformseq = 4;
   bool is_partial_allowed = 5;        // Partial user buffer allowed?
   uint32 align = 6;                   // Required alignment in dest DMA buffer
+  bool skip_partial_header = 7;         // no size and offset data?
+}
+
+message RuntimeLoadableConstant {
+  string name = 1;
+  uint64 size = 2;
+  uint64 offset = 3;
 }
 
 // The order of the buffers specifies the buffer_num, and is referenced
@@ -131,6 +172,7 @@ message IOBinding {
 message DMABuffer {
   uint32 size = 1;
   direction dir = 2;         // Buffers are uni-directional, specify In or Out
+  bool allow_skip = 3;
 }
 
 message OpNameKind {
@@ -155,19 +197,20 @@ message CoreOpNameKinds {
 
 message Stats {
   uint32 buff_num = 1; // DMA buffer number containing stats buffer
+  bool stats_no_host_sync = 2;     // -aic-stats-nohostsync
+  repeated int32 pmu_events = 3;
+  OpStatsMetaInfo opstat_info = 4;
+  repeated StatsDataTLV stats_buffer_tlv = 5;
+}
 
-  bool print_stats = 2;            // -aic-stats
-  int32 stats_level = 3;           // -aic-stats-level
-  bool stats_no_host_sync = 4;     // -aic-stats-nohostsync
-  bool print_op_stats = 5;         // -aic-op-stats
-  int32 op_stats_level = 6;        // -aic-op-stats-level
-  int32 batch_size = 7;            // -aic-stats-batchsize
-  bool count_ddr_bw = 8;           // -aic-ddr-stats
-  int32 utimer_freq_ms = 9;
-  repeated int32 pmu_events = 10;
-  repeated int32 ops_per_core = 11;
-  repeated CoreOpNameKinds core_op_name_kinds = 12;
-  int32 pmu_stats_level = 13;      // -aic-pmu-stats-level
+message OpStatsMetaInfo {
+  int32 op_stats_level = 1;        // -aic-op-stats-level
+  repeated int32 ops_per_core = 2;
+  repeated CoreOpNameKinds core_op_name_kinds = 3;
+
+  repeated uint32 thread_groups = 4;
+  uint32 thread_group_issue_count = 5;
+  repeated string thread_group_names = 6;
 }
 
 message transform {

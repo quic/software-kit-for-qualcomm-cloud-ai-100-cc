@@ -175,7 +175,75 @@ void logDeactivate(uint8_t virtualThreadId) {
         ctx->virtualNSPId, virtualThreadId);
 }
 
-void registerExitFunc(void (*exitFunc)()) {
-  getNSPContext()->exitThread = exitFunc;
+void *registerExitFunc(void (*exitFunc)()) {
+  CoreInfo *ctx = getNSPContext();
+  void *oldExitThreadFp = (void *)ctx->exitThread;
+  ctx->exitThread = exitFunc;
+  return oldExitThreadFp;
 }
+
+void quitIfExitDBSet(uint8_t virtualThreadId) {
+  CoreInfo *ctx = getNSPContext();
+  OSTimeoutCheckContext timeoutCtx(virtualThreadId, ctx->exitDB(),
+                                   /* expectedVal */ 1);
+  os_timeout_check(&timeoutCtx, /* dbval */ 0, /* doTimeoutCheck */ false,
+                   /* debugLog */ false);
+}
+
+void qcAtomicStore(uint32_t *atomicVar, uint32_t val) {
+  atomic_store_n(atomicVar, val);
+}
+uint32_t qcAtomicLoad(uint32_t *atomicVar) { return atomic_load_n(atomicVar); }
+
+uint16_t getExitDbNum() { return _progDesc->exitDB; }
+
+uint32_t qcAtomicFetchAdd(uint32_t *atomicVar, uint32_t val) {
+  return atomic_fetch_add(atomicVar, val);
+}
+
+int qcAtomicFetchOr(int *atomicVar, int val) {
+  return atomic_fetch_or(atomicVar, val);
+}
+
+int32_t qcAtomicFetchXor(int32_t *atomicVar, int32_t val) {
+  return atomic_fetch_xor(atomicVar, val);
+}
+
+int32_t qcAtomicCompareExchange(int32_t *atomicVar, int32_t *expected_val,
+                                int32_t val) {
+  return atomic_compare_exchange_n(atomicVar, expected_val, val);
+}
+
+void qcAtomicFetchSub(uint32_t *atomicVar, uint32_t val) {
+  atomic_fetch_sub(atomicVar, val);
+}
+
+int32_t getUtimerFreqMs() { return utimer_freq_ms(); }
+
+
+int totalThreadCount() {
+  // Hardcoded return value since there are 4 HVX threads spawned
+  return 6;
+}
+
+void qcDoorbellLocalWaitGe(uint32_t *var, int virtualThreadId, uint32_t val) {
+  os_doorbell_local_wait_ge(var, val,
+                            /*doTimeoutCheck*/ false,
+                            /*threadId*/ virtualThreadId);
+}
+
+void qcDoorbellLocalWaitEq(uint32_t *var, int virtualThreadId, uint32_t val) {
+  os_doorbell_local_wait_eq(var, val,
+                            /*doTimeoutCheck*/ false,
+                            /*threadId*/ virtualThreadId);
+}
+
+void setWaitTimeOut(uint64_t value) {
+  getNSPContext()->waitTimeoutLogMS = value / utimer_freq_ms();
+}
+
+void registerOpTimeoutPtr(void (*notifyTimeoutFunc)()) {
+  getNSPContext()->opTimeoutPtr = notifyTimeoutFunc;
+}
+
 } // namespace qaic

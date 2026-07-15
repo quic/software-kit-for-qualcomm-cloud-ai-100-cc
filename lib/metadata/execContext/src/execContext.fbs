@@ -108,6 +108,17 @@ typedef struct AICExecContext_ {
   /// UTC offset DDR data (input) base virtual address
   uint64_t *baseUtcOffsetDDR;
 
+  /// Predicate
+  predicate_update_fp predicateUpdateFuncPtr;
+  uint8_t *predicateBufferPtr;
+  uint32_t predicateBufferSize;
+
+  /// Secure Static shared DDR region. This region is secure and not mapped to Host/P2P access
+  uint8_t *baseSecureStaticSharedDDR;
+
+  // Function to get random numbers
+  nnc_get_randNum_fp getRandNumFuncPtr;
+
 } AICExecContext;
 */
 
@@ -145,6 +156,13 @@ enum execContextVariables : uint32 {
     dlErrorPtr = 30,
     dlInfoPtr = 31,
     baseUtcOffsetDDR = 32,
+    predicateUpdateFuncPtr = 33,
+    predicateBufferPtr = 34,
+    predicateBufferSize = 35,
+    userkeyPtr = 36,
+    userkeySize = 37,
+    baseSecureStaticSharedDDR = 38,
+    getRandNumFuncPtr = 39,
 }
 
 enum requiredDef : uint32 {

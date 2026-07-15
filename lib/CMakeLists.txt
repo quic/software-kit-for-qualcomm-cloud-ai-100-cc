@@ -11,7 +11,8 @@ set(METADATA_INSTALL_FILES
   metadata/metadata-common/inc/nnc_reprog_mcid_inf.h
   metadata/metadata-common/inc/nnc_rtld_inf.h
   metadata/metadata-common/inc/nnc_udma_inf.h
-  metadata/metadata-common/inc/nnc_ulog_inf.h)
+  metadata/metadata-common/inc/nnc_ulog_inf.h
+  metadata/metadata-common/inc/nnc_prng_inf.h)
 
 add_subdirectory(support)
 add_subdirectory(program)

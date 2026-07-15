@@ -60,11 +60,18 @@ enum execContextVariables : uint32_t {
   execContextVariables_dlErrorPtr = 30,
   execContextVariables_dlInfoPtr = 31,
   execContextVariables_baseUtcOffsetDDR = 32,
+  execContextVariables_predicateUpdateFuncPtr = 33,
+  execContextVariables_predicateBufferPtr = 34,
+  execContextVariables_predicateBufferSize = 35,
+  execContextVariables_userkeyPtr = 36,
+  execContextVariables_userkeySize = 37,
+  execContextVariables_baseSecureStaticSharedDDR = 38,
+  execContextVariables_getRandNumFuncPtr = 39,
   execContextVariables_MIN = execContextVariables_execContextMajorVersion,
-  execContextVariables_MAX = execContextVariables_baseUtcOffsetDDR
+  execContextVariables_MAX = execContextVariables_getRandNumFuncPtr
 };
 
-inline const execContextVariables (&EnumValuesexecContextVariables())[33] {
+inline const execContextVariables (&EnumValuesexecContextVariables())[40] {
   static const execContextVariables values[] = {
     execContextVariables_execContextMajorVersion,
     execContextVariables_execContextMinorVersion,
@@ -98,13 +105,20 @@ inline const execContextVariables (&EnumValuesexecContextVariables())[33] {
     execContextVariables_dlAddrPtr,
     execContextVariables_dlErrorPtr,
     execContextVariables_dlInfoPtr,
-    execContextVariables_baseUtcOffsetDDR
+    execContextVariables_baseUtcOffsetDDR,
+    execContextVariables_predicateUpdateFuncPtr,
+    execContextVariables_predicateBufferPtr,
+    execContextVariables_predicateBufferSize,
+    execContextVariables_userkeyPtr,
+    execContextVariables_userkeySize,
+    execContextVariables_baseSecureStaticSharedDDR,
+    execContextVariables_getRandNumFuncPtr
   };
   return values;
 }
 
 inline const char * const *EnumNamesexecContextVariables() {
-  static const char * const names[34] = {
+  static const char * const names[41] = {
     "execContextMajorVersion",
     "execContextMinorVersion",
     "virtualNSPId",
@@ -138,13 +152,20 @@ inline const char * const *EnumNamesexecContextVariables() {
     "dlErrorPtr",
     "dlInfoPtr",
     "baseUtcOffsetDDR",
+    "predicateUpdateFuncPtr",
+    "predicateBufferPtr",
+    "predicateBufferSize",
+    "userkeyPtr",
+    "userkeySize",
+    "baseSecureStaticSharedDDR",
+    "getRandNumFuncPtr",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameexecContextVariables(execContextVariables e) {
-  if (flatbuffers::IsOutRange(e, execContextVariables_execContextMajorVersion, execContextVariables_baseUtcOffsetDDR)) return "";
+  if (flatbuffers::IsOutRange(e, execContextVariables_execContextMajorVersion, execContextVariables_getRandNumFuncPtr)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesexecContextVariables()[index];
 }
@@ -401,7 +422,7 @@ inline void execContext::UnPackTo(execContextT *_o, const flatbuffers::resolver_
   (void)_o;
   (void)_resolver;
   { auto _e = execContextSize(); _o->execContextSize = _e; }
-  { auto _e = execContextFields(); if (_e) { _o->execContextFields.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { if(_o->execContextFields[_i]) { _e->Get(_i)->UnPackTo(_o->execContextFields[_i].get(), _resolver); } else { _o->execContextFields[_i] = std::unique_ptr<ExecContext::execContextFieldT>(_e->Get(_i)->UnPack(_resolver)); }; } } else { _o->execContextFields.resize(0); } }
+  { auto _e = execContextFields(); if (_e) { _o->execContextFields.resize(_e->size()); for (flatbuffers::uoffset_t _i = 0; _i < _e->size(); _i++) { _o->execContextFields[_i] = std::unique_ptr<ExecContext::execContextFieldT>(_e->Get(_i)->UnPack(_resolver)); } } }
 }
 
 inline flatbuffers::Offset<execContext> execContext::Pack(flatbuffers::FlatBufferBuilder &_fbb, const execContextT* _o, const flatbuffers::rehasher_function_t *_rehasher) {

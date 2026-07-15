@@ -106,6 +106,9 @@ public:
     addUsedElement(ExecContext::execContextVariables_reprogMcidFuncPtr,
                    sizeof(placeholder.reprogMcidFuncPtr),
                    offsetof(AICExecContext_32bitPointers, reprogMcidFuncPtr));
+    addUsedElement(ExecContext::execContextVariables_getRandNumFuncPtr,
+                   sizeof(placeholder.getRandNumFuncPtr),
+                   offsetof(AICExecContext_32bitPointers, getRandNumFuncPtr));
   }
   // section starting with dlOpenPtr and ending with dlInfoPtr
   void usingExecContextRTLDapi() {
