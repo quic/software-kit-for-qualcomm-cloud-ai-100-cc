@@ -146,4 +146,38 @@ int internalBufferNum(int buffNum) {
   return buffNum + _progDesc->numInputBuffs + _progDesc->numOutputBuffs;
 }
 
+void udmaSubmitLinearDesc(int threadId, const int8_t *src, int size,
+                          const int8_t *dst, const uint32_t *dbVal,
+                          bool waitForDone, bool updateDBs, uint32_t dBNum,
+                          bool order) {
+    (void)threadId;
+    (void)src;
+    (void)size;
+    (void)dst;
+    (void)dbVal;
+    (void)waitForDone;
+    (void)updateDBs;
+    (void)dBNum;
+    (void)order;
+}
+
+void udmaSubmit2DDesc(int threadId, const int8_t *src, const int8_t *dst,
+                      int32_t height, int32_t width, int32_t dstStride,
+                      int32_t srcStride, const uint32_t *dbVal,
+                      bool waitForDone, bool updateDBs, uint32_t dBNum,
+                      bool order) {
+    (void)threadId;
+    (void)src;
+    (void)dst;
+    (void)height;
+    (void)width;
+    (void)dstStride;
+    (void)srcStride;
+    (void)dbVal;
+    (void)waitForDone;
+    (void)updateDBs;
+    (void)dBNum;
+    (void)order;
+}
+
 } // namespace qaic

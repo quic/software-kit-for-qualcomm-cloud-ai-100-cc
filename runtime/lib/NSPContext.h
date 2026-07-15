@@ -44,6 +44,7 @@ struct CoreInfo {
   nnc_udma_read_fp udmaReadFuncPtr{nullptr};
   nnc_mmap_fp mmapFuncPtr{nullptr};
   nnc_munmap_fp munmapFuncPtr{nullptr};
+  nnc_notify_hang_fp opTimeoutPtr{nullptr};
   union {
     uint8_t *qdss_stm_port_vaddr{nullptr};
     uint8_t *qdssSTMPortVaddr;

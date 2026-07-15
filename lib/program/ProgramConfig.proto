@@ -9,6 +9,19 @@ enum destination {
   L2TCM = 0;
   VTCM = 1;
   DDR = 2;
+  DDRDynamicShared = 3;
+}
+
+enum PortType {
+  USERIO_PORT= 0;
+  P2P_PORT = 1;
+  TH_PORT = 2;
+}
+
+enum IoSrcDest {
+  HOST_IO = 0;
+  P2P_IO = 1;
+  TH_IO = 2;
 }
 
 message IODescription {
@@ -23,6 +36,55 @@ message IODescription {
   repeated int32 nsps = 9;
   bool noDoorbell = 10;
   bool allowPartial = 11;
+  IoSrcDest ioInfo = 12;
+}
+
+/**
+Port Info has the following format:
+[Required] "portId":         Source/Destination port id for this input/output.
+[Required] "partitionId":    Partition id the input/output is for.
+[Required] "type":           Port type such as UserIO (in case if the input or output
+                             is to/from host), P2P (in case if the input or output is
+                             to/from a peer device), TH (in case if the input or output
+                             is to/from a peer device but through host).
+[Optional] "transactionId":  Transaction Id for the dma request. Only valid if the input
+                             or output is to/from a P2P or TH port.
+[Required] "bufNum":         Index into the list of input/output buffers this particular
+                             port info belongs to.
+[Optional] "numRepeat":      Number of times the input or output is to be repeated in
+                             the dma requests.
+*/
+message PortInfo {
+  uint32 portId = 1;
+  uint32 partitionId = 2;
+  PortType type = 3;
+  uint32 transactionId = 4;
+  repeated uint32 bufNum = 5;
+  uint32 numRepeat = 6;
+}
+
+message TopologyDescription {
+  uint32 numUserIOInputPort = 1;
+  uint32 numP2PInputPort = 2;
+  uint32 numTHInputPort = 3;
+  repeated PortInfo inputPortInfo = 4;
+  uint32 numUserIOOutputPort = 5;
+  uint32 numP2POutputPort = 6;
+  uint32 numTHOutputPort = 7;
+  repeated PortInfo outputPortInfo = 8;
+}
+
+message MultiDevicePartition {
+  uint32 numPartitions = 1;
+  repeated TopologyDescription topology = 3;
+/**
+[Required] "numUserIOOutputPerPartition":
+                             Array of number of User IO Outputs per partition.
+                             This is needed to specify the output file name
+                             when generating the network descriptor.
+*/
+  repeated uint32 numUserIOOutputPerPartition = 4;
+  uint32 partitionId = 5;
 }
 
 message ProgramConfig {
@@ -37,5 +99,6 @@ message ProgramConfig {
   uint32 numHMXThreads = 12;
   uint64 heapSize = 13;
   bool singleVTCMPage = 14;
+  repeated MultiDevicePartition partitionConfig = 16;
+  bool qpcShim = 17;
 }
-

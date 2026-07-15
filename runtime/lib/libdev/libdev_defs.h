@@ -29,6 +29,7 @@ void libdev_multicastVTCM(int8_t *dst, int32_t dstOffset, const int8_t *src,
 
 inline int libdev_l2tcm_size() { return 1 * 1024 * 1024; }
 inline int libdev_vtcm_size() { return 8 * 1024 * 1024; }
+void *libdev_native_udma_handle(int threadId);
 }
 
 #endif // LIBDEV_DEFS_H

@@ -168,8 +168,8 @@
     case AicMetadataFlat::AICMDPortType_AICMDPortP2P:
       portTypeStr = "P2P";
       break;
-    case AicMetadataFlat::AICMDPortType_AICMDPortMDP:
-      portTypeStr = "MDP";
+    case AicMetadataFlat::AICMDPortType_AICMDPortTH:
+      portTypeStr = "TH";
       break;
     default:
       assert(0 && "Invalid port type.");

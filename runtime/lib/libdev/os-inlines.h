@@ -11,12 +11,40 @@
 
 using namespace aic;
 
+
+template <class T> T atomic_fetch_sub(T *ptr, T val) {
+  return __atomic_fetch_sub(ptr, val, __ATOMIC_SEQ_CST);
+}
+
 template <class T> void atomic_store_n(T *ptr, T val) {
   __atomic_store_n(ptr, val, __ATOMIC_SEQ_CST);
 }
 
 template <class T> T atomic_load_n(T *ptr) {
   return __atomic_load_n(ptr, __ATOMIC_SEQ_CST);
+}
+
+template <class T> T atomic_fetch_add(T *ptr, T val) {
+  return __atomic_fetch_add(ptr, val, __ATOMIC_SEQ_CST);
+}
+
+template <class T> T atomic_fetch_and(T *ptr, T val) {
+  return __atomic_fetch_and(ptr, val, __ATOMIC_SEQ_CST);
+}
+
+template <class T> T atomic_fetch_or(T *ptr, T val) {
+  return __atomic_fetch_or(ptr, val, __ATOMIC_SEQ_CST);
+}
+
+template <class T> T atomic_fetch_xor(T *ptr, T val) {
+  return __atomic_fetch_xor(ptr, val, __ATOMIC_SEQ_CST);
+}
+
+template <class T> T atomic_compare_exchange_n(T *ptr, T *expected, T desired) {
+  // bool __atomic_compare_exchange_n (type *ptr, type *expected, type desired,
+  // bool weak, int success_memorder, int failure_memorder)
+  return __atomic_compare_exchange_n(ptr, expected, desired, false,
+                                     __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);
 }
 
 /// Returns the value of \p x rounded up to the next mutliple of \p m.
@@ -131,6 +159,31 @@ inline void os_doorbell_wait_eq(nsp_doorbell_t db, uint32_t val,
       db, val, cmpEq, doTimeoutCheck, threadId);
 }
 
+inline void os_doorbell_wait_ge(nsp_doorbell_t db, uint32_t val,
+                                bool doTimeoutCheck, int threadId) {
+  auto cmpGe = [](uint32_t dbval, uint32_t waitval) {
+    return dbval >= waitval;
+  };
+  os_doorbell_wait</*isLocal=*/false, /*isDMAPossiblyActive=*/false>(
+      db, val, cmpGe, doTimeoutCheck, threadId);
+}
+
+inline void os_doorbell_wait_le(nsp_doorbell_t db, uint32_t val,
+                                bool doTimeoutCheck, int threadId) {
+  auto cmpLe = [](uint32_t dbval, uint32_t waitval) {
+    return dbval <= waitval;
+  };
+  os_doorbell_wait</*isLocal=*/false, /*isDMAPossiblyActive=*/false>(
+      db, val, cmpLe, doTimeoutCheck, threadId);
+}
+
+inline void os_doorbell_wait_lt(nsp_doorbell_t db, uint32_t val,
+                                bool doTimeoutCheck, int threadId) {
+  auto cmpLt = [](uint32_t dbval, uint32_t waitval) { return dbval < waitval; };
+  os_doorbell_wait</*isLocal=*/false, /*isDMAPossiblyActive=*/false>(
+      db, val, cmpLt, doTimeoutCheck, threadId);
+}
+
 inline void os_udma_wait_done(const DMADescriptor *desc, int threadId) {
   auto cmpDoneBit = [](uint32_t doneWord, uint32_t /*waitVal*/) {
     return doneWord & (1 << 31);
@@ -211,10 +264,49 @@ inline uint32_t os_doorbell_read4b_acquire(nsp_doorbell_t db) {
   return hexagon_atomic_load_nolock4b_acquire((uint32_t *)db);
 }
 
+inline void os_doorbell_local_wait_eq(nsp_doorbell_t db, uint32_t val,
+                                      bool doTimeoutCheck, int threadId) {
+  auto cmpEq = [](uint32_t dbval, uint32_t waitval) {
+    return dbval == waitval;
+  };
+  os_doorbell_wait</*isLocal=*/true, /*isDMAPossiblyActive=*/false>(
+      db, val, cmpEq, doTimeoutCheck, threadId);
+}
+
+inline void os_doorbell_local_wait_ge(nsp_doorbell_t db, uint32_t val,
+                                      bool doTimeoutCheck, int threadId) {
+  auto cmpGe = [](uint32_t dbval, uint32_t waitval) {
+    return dbval >= waitval;
+  };
+  os_doorbell_wait</*isLocal=*/true, /*isDMAPossiblyActive=*/false>(
+      db, val, cmpGe, doTimeoutCheck, threadId);
+}
+
 inline uint64_t os_get_system_timestamp() {
   uint64_t ts;
   asm volatile("%0=UTIMER" : "=r"(ts));
   return ts;
+}
+
+inline int32_t utimer_freq_ms() { return UTimerFreqMS; }
+
+// Use this when getting ucycle and pcycle at the same time
+// this reduce the chance of sampling error
+inline void os_get_ucycles_pcycles(uint64_t *ucycle, uint64_t *pcycle) {
+  asm volatile("%1=c15:14\n"
+               "%0=UTIMER\n"
+               : "=r"(*ucycle), "=r"(*pcycle));
+  return;
+}
+
+inline void os_mc_write_atomic4b_impl(uint32_t *mcAddress, uint32_t val) {
+  hexagon_atomic_store_nolock4b(mcAddress, val);
+}
+
+inline void os_mc_write_atomic4b(void *mcBaseAddress, int32_t offset,
+                                 uint32_t val) {
+  uint8_t *mcAddress = (uint8_t *)mcBaseAddress;
+  os_mc_write_atomic4b_impl((uint32_t *)(mcAddress + offset), val);
 }
 
 } // extern "C"

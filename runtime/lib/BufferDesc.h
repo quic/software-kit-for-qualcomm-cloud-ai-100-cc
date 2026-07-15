@@ -55,5 +55,15 @@ void broadcastToBuffer(int buffNum, int32_t dstOffset, int size,
 int inputBufferNum(int buffNum);
 int outputBufferNum(int buffNum);
 int internalBufferNum(int buffNum);
+
+void udmaSubmitLinearDesc(int threadId, const int8_t *src, int size,
+                          const int8_t *dst, const uint32_t *dbVal,
+                          bool waitForDone, bool updateDbs, uint32_t dBNum,
+                          bool order);
+void udmaSubmit2DDesc(int threadId, const int8_t *src, const int8_t *dst,
+                      int32_t height, int32_t width, int32_t destStride,
+                      int32_t srcStride, const uint32_t *dbVal,
+                      bool waitForDone, bool updateDbs, uint32_t DBNum,
+                      bool order);
 } // namespace qaic
 #endif

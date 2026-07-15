@@ -12,6 +12,7 @@
 #include "nnc_rtld_inf.h"
 #include "nnc_udma_inf.h"
 #include "nnc_ulog_inf.h"
+#include "nnc_prng_inf.h"
 
 #include <stdint.h>
 
@@ -128,6 +129,8 @@ typedef struct AICExecContext_ {
   /// UTC offset DDR data (input) base virtual address
   uint64_t *baseUtcOffsetDDR;
 
+  // Function to get random numbers
+  nnc_get_randNum_fp getRandNumFuncPtr;
 } AICExecContext;
 
 #endif // AIC_METADATA_CTX

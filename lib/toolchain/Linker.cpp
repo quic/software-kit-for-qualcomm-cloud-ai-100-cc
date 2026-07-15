@@ -100,6 +100,10 @@ int qaic::Linker::execute() {
 
   StringList args;
   args.push_back(pathOrError.get());
+
+  args.push_back("--target=hexagon-unknown-elf");
+  args.push_back("-fno-pic");
+
   for (auto &lib : linkerLibs_) {
     args.push_back(lib);
   }
@@ -119,15 +123,20 @@ int qaic::Linker::execute() {
     args.push_back("-nostdlib++");
   }
 
-  // Virtual addresses below a specific point are not valid
-  args.push_back(
-	llvm::formatv("-Wl,--image-base={0:x}", DEFAULT_TEXT_SECTION_ADDR)
-            .str());
+  if (!sectionAddrs_.empty()) {
+    args.push_back(llvm::formatv("-Wl,--image-base={0:x}",
+                                 sectionAddrs_.begin()->second)
+                       .str());
+  }
 
-  // Hexagon supports 4K pages, and we would like to keep overall size down
-  args.push_back(
-        llvm::formatv("-Wl,-z,max-page-size=4096")
-            .str());
+  // FW expects the first segment to be RX which then allows the FW to
+  // efficiently share the segment with all NSPs operating the workload.
+  args.push_back("-Wl,-z,max-page-size=4096");
+  args.push_back("-Wl,--no-rosegment");
+  args.push_back("-Wl,-z,separate-code");
+  args.push_back("-Wl,-z,norelro");
+  args.push_back("-Wl,--no-eh-frame-hdr");
+  args.push_back("-Wl,-z,nognustack");
 
   for (auto const &kvp : defSyms_) {
     args.push_back(
@@ -146,10 +155,6 @@ int qaic::Linker::execute() {
   for (auto const &s : wrapSyms_) {
     args.push_back(llvm::formatv("-Wl,--wrap,{0}", s).str());
   }
-  // FW expects the first segment to be RX which then allows the FW to
-  // efficiently share the segment with all NSPs operating the workload.
-  args.push_back("-Wl,--no-rosegment");
-  args.push_back(llvm::formatv("-Wl,-z,separate-code").str());
 
   auto rc = runProcessWithArgs(pathOrError.get(), args.getRefList());
   if (!linkStandardLibs_) {

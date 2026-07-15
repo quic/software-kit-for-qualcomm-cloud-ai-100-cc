@@ -77,6 +77,11 @@ static void gsm_semaphore_command(hostsem_t s, uint8_t op, uint8_t semNum,
   hexagon_atomic_store_nolock4b(sa, command);
 }
 
+void os_hostsem_init(hostsem_t s, uint32_t semNum, uint32_t val) {
+  assert(s && "hostsem==nullptr");
+  gsm_semaphore_command(s, GSM_SEMOP_INIT, semNum, val);
+}
+
 void os_hostsem_inc(hostsem_t s, uint32_t semNum) {
   assert(s && "hostsem==nullptr");
   gsm_semaphore_command(s, GSM_SEMOP_INC, semNum, 0);

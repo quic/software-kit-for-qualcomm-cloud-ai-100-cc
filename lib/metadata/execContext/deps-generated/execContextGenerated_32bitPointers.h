@@ -109,6 +109,27 @@ typedef struct AICExecContext_32bitPointers {
   /// UTC offset DDR data (input) base virtual address
   uint32_t baseUtcOffsetDDR;
 
+  /// Function network calls to update predicates
+  uint32_t predicateUpdateFuncPtr;
+
+  /// Pointer to the buffer of predicate update
+  uint32_t predicateBufferPtr;
+
+  /// Predicate update buffer size
+  uint32_t predicateBufferSize;
+
+  // Pointer to Userkey buffer
+  uint32_t userkeyPtr;
+
+  // Userkey size
+  uint64_t userkeySize;
+
+  // Secure Static shared DDR region
+  uint32_t baseSecureStaticSharedDDR;
+
+  // Function to get random numbers
+  uint32_t getRandNumFuncPtr;
+
 } AICExecContext32bitPointers;
 
 #endif // EXECCONTEXTGENERATED_32BITPOINTERS_H
